@@ -80,12 +80,41 @@
       el.querySelector('.eng').onchange = e => { a.engine = e.target.value; buildStrings(); };
       el.querySelectorAll('.pl').forEach(b => b.onclick = () => { a.pol = b.dataset.pol; buildStrings(); renderHier(); });
       el.querySelector('.lvl').oninput = e => { a.level = +e.target.value; };
-      el.querySelectorAll('.chip').forEach(c => c.onclick = () => toggleType(c.dataset.t));
+      el.querySelectorAll('.chip').forEach(c => {
+        c.onclick = () => toggleType(c.dataset.t);
+        c.onmousemove = e => showTip(cellCard(c.dataset.t), e.clientX, e.clientY); c.onmouseleave = hideTip;
+        c.removeAttribute('title');
+      });
+      const nm = el.querySelector('.nm');
+      nm.onmousemove = e => showTip(areaCard(g), e.clientX, e.clientY); nm.onmouseleave = hideTip;
     });
   }
   const tauOf = t => tauList[types.indexOf(t)] || 0.05;
   let tauList = [];
   const audible = g => !area[g].mute && (!area.some(a => a.solo) || area[g].solo);
+
+  // hover cards: putative roles of areas and cell types (js/info.js), plus live facts
+  const tip = $('tip');
+  const plucks = {};
+  function showTip(html, x, y) {
+    tip.innerHTML = html; tip.classList.add('on');
+    const w = tip.offsetWidth, h = tip.offsetHeight;
+    tip.style.left = Math.min(window.innerWidth - w - 10, x + 14) + 'px';
+    tip.style.top = Math.min(window.innerHeight - h - 10, y + 14) + 'px';
+  }
+  const hideTip = () => tip.classList.remove('on');
+  function areaCard(g) {
+    const A = FlyInfo.areas[g], a = area[g];
+    const n = types.filter(t => groupOf(t) === g), on = n.filter(t => selected.has(t)).length;
+    return `<h4 style="color:${GROUP_COL[g]}">${A.name}</h4><div class="k">${A.sub}</div>${A.text}
+      <div class="meta">${n.length} cell types · ${on} strung · sounds as ${ENGINES[a.engine]}${a.mute ? ' · muted' : ''}${a.solo ? ' · solo' : ''}</div>`;
+  }
+  function cellCard(t) {
+    const g = groupOf(t), st = strings.filter(x => x.name === t);
+    const notes = st.map(x => `${x.pol > 0 ? 'depol' : 'hyperpol'} ${NOTE_NAMES[x.midi % 12]}${Math.floor(x.midi / 12) - 1}`).join(', ');
+    return `<h4 style="color:${GROUP_COL[g]}">${t}</h4><div class="k">${FlyInfo.areas[g].name}</div>${FlyInfo.cells[t] || 'Cell type in the model.'}
+      <div class="meta">τ = ${(1000 * tauOf(t)).toFixed(0)} ms${st.length ? ` · strung: ${notes} · plucked ${plucks[t] || 0}×` : ' · not strung (click to add)'}</div>`;
+  }
 
   // per-cell-type timbre: the area sets the instrument family; the cell's membrane time constant
   // sets the envelope (fast cells percussive, slow cells sustained); a hash of its name varies the colour
@@ -180,6 +209,7 @@
     const n = {midi: st.midi, vel: ev.vel * area[st.g].level, pan: ev.pan, dur: DUR[st.g], engine: st.engine, p,
       channel: $('midiCh').value === 'layer' ? st.g + (st.pol < 0 ? 5 : 0) : (st.pol < 0 ? 1 : 0)};
     if (playing) Sound.play(n, {internal: $('internal').checked, midi: true});
+    plucks[st.name] = (plucks[st.name] || 0) + 1;
     roll.push({midi: st.midi, g: st.g, vel: ev.vel, x: rollW, hyp: st.pol < 0}); stats.notes++; stats.byGroup[st.g]++; stats[st.pol < 0 ? 'hyp' : 'dep']++;
   }
 
@@ -242,7 +272,15 @@
     for (let i = 0; i < X.length; i++) {
       const v = Math.round(lastLum[i] * 255);
       ex.fillStyle = `rgb(${v},${v},${v})`;
-      ex.beginPath(); ex.arc(cx + X[i] * s, cy + Y[i] * s, s * 0.52, 0, 2 * Math.PI); ex.fill();
+      ex.beginPath(); ex.arc(cx + X[i] * s, cy + Y[i] * s, s * 0.47, 0, 2 * Math.PI); ex.fill();
+    }
+    if ($('spatial').checked) {
+      // the 7 eye regions that each string listens to separately (centre + 6 sectors)
+      const R = Stimuli.radius() * s;
+      ex.strokeStyle = 'rgba(240,160,75,0.45)'; ex.lineWidth = 1; ex.setLineDash([4, 4]);
+      ex.beginPath(); ex.arc(cx, cy, R / 3, 0, 2 * Math.PI); ex.stroke();
+      for (let k = 0; k < 6; k++) { const a = -Math.PI + k * Math.PI / 3; ex.beginPath(); ex.moveTo(cx + Math.cos(a) * R / 3, cy + Math.sin(a) * R / 3); ex.lineTo(cx + Math.cos(a) * R * 1.02, cy + Math.sin(a) * R * 1.02); ex.stroke(); }
+      ex.setLineDash([]);
     }
   }
   let drawing = false;
@@ -257,56 +295,80 @@
   // ---------------------------------------------------------------- drawing: piano roll
   const rollC = $('roll'), rx = rollC.getContext('2d'), rollW = rollC.width, roll = [];
   function drawRoll(dt) {
-    rx.fillStyle = '#0a0b0d'; rx.fillRect(0, 0, rollC.width, rollC.height);
-    const lo = 30, hi = 110, h = rollC.height;
-    rx.strokeStyle = '#1c1f26'; rx.lineWidth = 1;
-    for (let m = 36; m < hi; m += 12) { const y = h - (m - lo) / (hi - lo) * h; rx.beginPath(); rx.moveTo(0, y); rx.lineTo(rollC.width, y); rx.stroke(); }
-    for (let i = roll.length - 1; i >= 0; i--) {
-      const n = roll[i]; n.x -= dt * 90;
-      if (n.x < -20) { roll.splice(i, 1); continue; }
-      const y = h - (n.midi - lo) / (hi - lo) * h;
-      rx.globalAlpha = 0.35 + 0.65 * n.vel; rx.fillStyle = GROUP_COL[n.g]; rx.strokeStyle = GROUP_COL[n.g];
-      if (n.hyp) { rx.lineWidth = 1.5; rx.strokeRect(n.x - 8, y - 3, 6 + 18 * DUR[n.g], 6); } else rx.fillRect(n.x - 8, y - 3, 6 + 18 * DUR[n.g], 6);
+    const W = rollC.width, h = rollC.height, lo = 22, hi = 112, yOf = m => h - (m - lo) / (hi - lo) * h;
+    rx.fillStyle = '#0a0b0d'; rx.fillRect(0, 0, W, h);
+    // one band per area spanning the pitches of its strings (both polarities)
+    rx.font = '600 11px -apple-system, Segoe UI, sans-serif';
+    for (let g = 0; g < 5; g++) {
+      const ms = strings.filter(x => x.g === g).map(x => x.midi); if (!ms.length) continue;
+      const y0 = yOf(Math.max(...ms) + 1), y1 = yOf(Math.min(...ms) - 1), q = audible(g) ? 1 : 0.35;
+      rx.globalAlpha = 0.07 * q; rx.fillStyle = GROUP_COL[g]; rx.fillRect(0, y0, W, y1 - y0);
+      rx.globalAlpha = 0.5 * q; rx.fillRect(0, y0, 3, y1 - y0);
+      rx.globalAlpha = 0.8 * q; rx.fillText(GROUP_NAMES[g], 10, Math.max(12, y0 + 12));
     }
     rx.globalAlpha = 1;
-    rx.font = '11px sans-serif';
-    GROUP_NAMES.forEach((g, i) => { rx.fillStyle = GROUP_COL[i]; rx.fillRect(10, 10 + i * 16, 10, 10); rx.fillStyle = '#8d8a83'; rx.fillText(g, 26, 19 + i * 16); });
-    rx.strokeStyle = '#8d8a83'; rx.lineWidth = 1; rx.fillRect(10, 96, 10, 6); rx.strokeRect(10.5, 110.5, 9, 6);
-    rx.fillText('depolarisation', 26, 103); rx.fillText('hyperpolarisation (octave down, swells in)', 26, 117);
+    for (let i = roll.length - 1; i >= 0; i--) {
+      const n = roll[i]; n.x -= dt * 90;
+      if (n.x < -40) { roll.splice(i, 1); continue; }
+      const y = yOf(n.midi), w = 6 + 18 * DUR[n.g];
+      rx.globalAlpha = 0.35 + 0.65 * n.vel; rx.fillStyle = GROUP_COL[n.g]; rx.strokeStyle = GROUP_COL[n.g];
+      if (n.hyp) { rx.lineWidth = 1.5; rx.strokeRect(n.x - 8, y - 3, w, 6); } else rx.fillRect(n.x - 8, y - 3, w, 6);
+    }
+    rx.globalAlpha = 1;
   }
 
   // ---------------------------------------------------------------- drawing: cascade of cell-type maps
   const casC = $('cascade'), cx2 = casC.getContext('2d');
-  let tiles = [], img = null, pix = null;
-  const ROWS = [t => groupOf(t) === 0, t => groupOf(t) === 1, t => groupOf(t) === 2, t => groupOf(t) === 3 && /^Tm\d/.test(t),
-    t => groupOf(t) === 3 && !/^Tm\d/.test(t), t => groupOf(t) === 4];
-  const TW = 86, TH = 70, MS = 2.05;
+  let tiles = [], bands = [], img = null, pix = null;
+  const ROWS = [[0, t => groupOf(t) === 0], [1, t => groupOf(t) === 1], [2, t => groupOf(t) === 2], [3, t => groupOf(t) === 3 && /^Tm\d/.test(t)],
+    [3, t => groupOf(t) === 3 && !/^Tm\d/.test(t)], [4, t => groupOf(t) === 4]];
+  const LW = 150, TW = 78, TH = 70, MS = 2.0;
   function layoutCascade() {
-    tiles = [];
-    ROWS.forEach((f, row) => types.filter(f).forEach((t, i) => tiles.push({t: types.indexOf(t), name: t, x0: 8 + i * TW, y0: 6 + row * TH, g: groupOf(t)})));
+    tiles = []; bands = [];
+    ROWS.forEach(([g, f], row) => {
+      types.filter(f).forEach((t, i) => tiles.push({t: types.indexOf(t), name: t, x0: LW + i * TW, y0: 8 + row * TH, g}));
+      const b = bands.find(b => b.g === g);
+      if (b) b.y1 = 8 + (row + 1) * TH; else bands.push({g, y0: 8 + row * TH, y1: 8 + (row + 1) * TH});
+    });
     img = cx2.createImageData(casC.width, casC.height); pix = img.data;
   }
+  const meter = new Float32Array(5);
   function drawCascade() {
     if (!ready || !lastDV) return;
-    pix.fill(0);
-    for (let i = 3; i < pix.length; i += 4) pix[i] = 255;
-    for (let i = 0; i < pix.length; i += 4) { pix[i] = 10; pix[i + 1] = 11; pix[i + 2] = 13; }
+    for (let i = 0; i < pix.length; i += 4) { pix[i] = 10; pix[i + 1] = 11; pix[i + 2] = 13; pix[i + 3] = 255; }
+    const lvl = new Float32Array(5), cnt = new Float32Array(5);
     for (const tl of tiles) {
-      const arr = nodeOf[tl.t], sc = 3 * scale[tl.t], ox = tl.x0 + 38, oy = tl.y0 + 34;
+      const arr = nodeOf[tl.t], sc = 3 * scale[tl.t], ox = tl.x0 + 34, oy = tl.y0 + 32, on = selected.has(tl.name);
+      const dim = on ? (audible(tl.g) ? 1 : 0.55) : 0.42;
+      let ab = 0, n = 0;
       for (let k = 0; k < arr.length; k++) {
         const id = arr[k]; if (id < 0) continue;
-        let v = lastDV[id] / sc; v = v > 1 ? 1 : v < -1 ? -1 : v;
-        const r = v > 0 ? 30 + 225 * v : 30 + 60 * -v, g = v > 0 ? 32 + 128 * v : 32 + 134 * -v, b = v > 0 ? 36 + 40 * v : 36 + 196 * -v;
+        let v = lastDV[id] / sc; v = v > 1 ? 1 : v < -1 ? -1 : v; ab += Math.abs(v); n++;
+        const r = (v > 0 ? 32 + 208 * v : 32 + 58 * -v) * dim, g = (v > 0 ? 34 + 126 * v : 34 + 132 * -v) * dim, b = (v > 0 ? 40 + 35 * v : 40 + 192 * -v) * dim;
         const px = Math.round(ox + X[k] * MS), py = Math.round(oy + Y[k] * MS);
         for (let dy = 0; dy < 2; dy++) for (let dx = 0; dx < 2; dx++) { const o = 4 * ((py + dy) * casC.width + px + dx); pix[o] = r; pix[o + 1] = g; pix[o + 2] = b; }
       }
+      lvl[tl.g] += ab / Math.max(n, 1); cnt[tl.g]++;
     }
     cx2.putImageData(img, 0, 0);
-    cx2.font = '10px sans-serif';
+    // area bands: name, members, live activity meter (mean |response| across the area's cell types)
+    for (const b of bands) {
+      const g = b.g, q = audible(g) ? 1 : 0.45, m = lvl[g] / Math.max(cnt[g], 1);
+      meter[g] += (m - meter[g]) * 0.3;
+      cx2.globalAlpha = 0.06 * q; cx2.fillStyle = GROUP_COL[g]; cx2.fillRect(0, b.y0, casC.width, b.y1 - b.y0 - 4);
+      cx2.globalAlpha = q; cx2.fillRect(0, b.y0, 3, b.y1 - b.y0 - 4);
+      cx2.font = '600 13px -apple-system, Segoe UI, sans-serif'; cx2.fillText(FlyInfo.areas[g].name, 12, b.y0 + 20);
+      cx2.globalAlpha = 0.7 * q; cx2.fillStyle = '#8d8a83'; cx2.font = '10.5px -apple-system, Segoe UI, sans-serif'; cx2.fillText(FlyInfo.areas[g].sub, 12, b.y0 + 35);
+      cx2.fillStyle = '#23262e'; cx2.globalAlpha = 1; cx2.fillRect(12, b.y0 + 44, LW - 30, 4);
+      cx2.fillStyle = GROUP_COL[g]; cx2.globalAlpha = q; cx2.fillRect(12, b.y0 + 44, Math.min(1, meter[g] * 2.5) * (LW - 30), 4);
+    }
+    cx2.globalAlpha = 1;
+    cx2.font = '10px -apple-system, Segoe UI, sans-serif';
     for (const tl of tiles) {
-      const on = selected.has(tl.name), quiet = !audible(tl.g);
-      cx2.globalAlpha = on ? (quiet ? 0.45 : 1) : 0.45; cx2.fillStyle = GROUP_COL[tl.g]; cx2.fillText(tl.name, tl.x0, tl.y0 + 68);
-      if (on) { cx2.strokeStyle = GROUP_COL[tl.g]; cx2.lineWidth = 1; cx2.strokeRect(tl.x0 + 1.5, tl.y0 - 0.5, TW - 8, TH - 8); }
+      const on = selected.has(tl.name);
+      cx2.globalAlpha = on ? (audible(tl.g) ? 1 : 0.5) : 0.38; cx2.fillStyle = on ? GROUP_COL[tl.g] : '#8d8a83';
+      cx2.fillText(tl.name, tl.x0 + 2, tl.y0 + 66);
+      if (on) { cx2.fillRect(tl.x0 + 2, tl.y0 + 1, 10, 2); }
     }
     cx2.globalAlpha = 1;
     const now = performance.now();
@@ -314,20 +376,28 @@
     for (const rg of rings) {
       const tl = tiles.find(x => x.t === rg.t); if (!tl) continue;
       const a = 1 - (now - rg.born) / 400;
-      cx2.strokeStyle = GROUP_COL[rg.g]; cx2.globalAlpha = rg.quiet ? a * 0.3 : a; cx2.lineWidth = 2;
-      let px = tl.x0 + 38, py = tl.y0 + 34, rad = 32;
-      if (rg.r > 0) { const ang = -Math.PI + (rg.r - 0.5) * Math.PI / 3; px += Math.cos(ang) * 20; py += Math.sin(ang) * 20; rad = 11; } else if (rg.r === 0) rad = 11;
-      cx2.setLineDash(rg.hyp ? [3, 3] : []); if (rg.hyp) cx2.strokeStyle = '#5aa6e8';
+      cx2.strokeStyle = rg.hyp ? '#5aa6e8' : GROUP_COL[rg.g]; cx2.globalAlpha = rg.quiet ? a * 0.3 : a; cx2.lineWidth = 2;
+      let px = tl.x0 + 34, py = tl.y0 + 32, rad = 30;
+      if (rg.r > 0) { const ang = -Math.PI + (rg.r - 0.5) * Math.PI / 3; px += Math.cos(ang) * 19; py += Math.sin(ang) * 19; rad = 10; } else if (rg.r === 0) rad = 10;
+      cx2.setLineDash(rg.hyp ? [3, 3] : []);
       cx2.beginPath(); cx2.arc(px, py, rad, 0, 2 * Math.PI); cx2.stroke(); cx2.setLineDash([]);
     }
     cx2.globalAlpha = 1;
   }
-
-  casC.addEventListener('click', e => {
+  function hitCascade(e) {
     const r = casC.getBoundingClientRect(), x = (e.clientX - r.left) * casC.width / r.width, y = (e.clientY - r.top) * casC.height / r.height;
-    const tl = tiles.find(t => x >= t.x0 && x < t.x0 + TW - 6 && y >= t.y0 && y < t.y0 + TH - 2);
-    if (tl) toggleType(tl.name);
+    if (x < LW) { const b = bands.find(b => y >= b.y0 && y < b.y1); return b ? {band: b.g} : null; }
+    const tl = tiles.find(t => x >= t.x0 && x < t.x0 + TW - 4 && y >= t.y0 && y < t.y0 + TH - 2);
+    return tl ? {tile: tl} : null;
+  }
+  casC.addEventListener('mousemove', e => {
+    const h = hitCascade(e);
+    if (!h) return hideTip();
+    showTip(h.tile ? cellCard(h.tile.name) : areaCard(h.band), e.clientX, e.clientY);
   });
+  casC.addEventListener('mouseleave', hideTip);
+
+  casC.addEventListener('click', e => { const h = hitCascade(e); if (h && h.tile) { toggleType(h.tile.name); showTip(cellCard(h.tile.name), e.clientX, e.clientY); } });
   casC.style.cursor = 'pointer';
 
   requestAnimationFrame(tick);

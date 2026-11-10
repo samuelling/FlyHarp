@@ -73,16 +73,16 @@
     <div class="top">
       <figure class="eyebox">
         <canvas id="eye" width="360" height="360"></canvas>
-        <figcaption>what the fly sees: 721 ommatidia <span id="eyehint"></span></figcaption>
+        <figcaption>what the fly sees: 721 ommatidia<span id="eyehint"></span></figcaption>
       </figure>
       <figure class="rollbox">
         <canvas id="roll" width="760" height="360"></canvas>
-        <figcaption>notes as they fire, coloured by layer (time runs left → right)</figcaption>
+        <figcaption class="legend"><span><i class="sw fill"></i>depolarisation</span><span><i class="sw hollow"></i>hyperpolarisation (octave down, swells in)</span><span class="muted">bands: each area's pitch range · time runs right → left</span></figcaption>
       </figure>
     </div>
     <figure>
-      <canvas id="cascade" width="1180" height="430"></canvas>
-      <figcaption>the cascade: every cell type's 721-column map, depolarised (orange) or hyperpolarised (blue) relative to grey. Solid rings mark depolarisation plucks, dashed blue rings hyperpolarisation; outlined maps are strung, click a map to string or unstring it.</figcaption>
+      <canvas id="cascade" width="1180" height="432"></canvas>
+      <figcaption class="legend"><span><i class="grad"></i>hyperpolarised · grey · depolarised (relative to a grey screen)</span><span><i class="ring"></i>pluck</span><span><i class="ring dash"></i>hyperpolarisation pluck</span><span class="muted">bright = strung · click a map to string it · hover for what each cell does</span></figcaption>
     </figure>
     <details class="about">
       <summary>What am I hearing?</summary>
@@ -101,6 +101,8 @@
     </details>
   </section>
 </main>
+<div id="tip" class="tip" role="tooltip"></div>
+<script src="js/info.js"></script>
 <script src="js/stimuli.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/app.js"></script>

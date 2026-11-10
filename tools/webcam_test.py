@@ -11,7 +11,13 @@ async def main(out):
             await pg.click('#go'); await pg.wait_for_timeout(6000)
             st = json.loads(await pg.evaluate('JSON.stringify(window.__flyharp.stats)'))
             print('stimulus:', await pg.evaluate('window.__flyharp.P.kind'), '| status:', await pg.text_content('#status'), '| notes', st['notes'], 'dep', st['dep'], 'hyp', st['hyp'], st['byGroup'])
-            await pg.screenshot(path=f'{out}/fh_webcam.png'); await b.close()
+            await pg.screenshot(path=f'{out}/fh_webcam.png')
+            box = await pg.locator('#cascade').bounding_box()
+            sc = box['width'] / 1180
+            await pg.mouse.move(box['x'] + 60 * sc, box['y'] + 4 * 70 * sc + 30 * sc); await pg.wait_for_timeout(300)
+            await pg.screenshot(path=f'{out}/fh_hover_area.png')
+            await pg.mouse.move(box['x'] + (150 + 78 * 0 + 30) * sc, box['y'] + (8 + 5 * 70 + 30) * sc); await pg.wait_for_timeout(300)
+            await pg.screenshot(path=f'{out}/fh_hover_cell.png'); await b.close()
     finally:
         srv.terminate()
 asyncio.run(main(sys.argv[1]))

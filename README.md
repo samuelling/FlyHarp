@@ -15,6 +15,8 @@ A synthesizer played by the *Drosophila* visual system. A stimulus (or your webc
 - **Hierarchy mixer.** The five areas (retina, lamina, medulla, medulla → lobula, lobula plate) can each be soloed, muted, levelled and given an instrument. Cell types are strung or unstrung with chips, or by clicking their maps in the cascade.
 - **Timbre.** Each area is an instrument family: bowed pad, marimba, harp (Karplus–Strong), FM bell, glass, or pitched click. Each cell type is its own variant within that family. Its **envelope comes from the cell's fitted membrane time constant**, so fast cells are percussive and slow cells sustain, and a hash of its name sets partial ratios, FM ratio and brightness. Everything runs in one AudioWorklet (`js/voices-worklet.js`) with reverb, plus Web MIDI out (one channel per area, or all on channel 1).
 
+- **Hover cards** (`js/info.js`) give each visual area and each of the 65 cell types a short summary of its putative role, plus live facts: time constant, its notes, and how often it has plucked.
+
 ## Files
 
 ```
@@ -25,6 +27,7 @@ js/stimuli.js        stimuli and webcam on the hex eye
 js/audio.js          Web Audio harp + Web MIDI
 js/voices-worklet.js multi-engine voices (pluck, modal, glass, FM, pad, click)
 js/app.js            UI, string detectors, drawing
+js/info.js           putative roles of areas and cell types (hover cards)
 data/fly.json        exported model
 tools/export_model.py   export from flyvis (pip install flyvis; flyvis download-pretrained)
 tools/validate_engine.js  compare the JS engine with a PyTorch reference trace

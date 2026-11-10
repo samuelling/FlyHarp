@@ -7,7 +7,7 @@ header{display:flex;align-items:center;gap:18px;padding:12px 20px;border-bottom:
 .brand span{color:var(--muted);margin-left:10px}
 .go{background:var(--acc);color:#1a1206;border:0;border-radius:20px;padding:8px 18px;font:600 14px inherit;cursor:pointer}
 .go.playing{background:#2c2f38;color:var(--ink)}
-.status{color:var(--muted);font-size:13px}
+.status{color:var(--muted);font-size:12.5px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:4px 12px}
 main{display:flex;gap:0;min-height:calc(100vh - 60px)}
 aside{width:290px;flex:0 0 290px;border-right:1px solid var(--line);padding:6px 16px 30px;overflow-y:auto;max-height:calc(100vh - 60px)}
 aside section{border-bottom:1px solid var(--line);padding:10px 0 12px}
@@ -52,3 +52,19 @@ canvas{background:#0a0b0d;border:1px solid var(--line);border-radius:10px;displa
 .chip{font-size:10.5px;padding:1px 6px;border-radius:9px;border:1px solid var(--line);color:var(--muted);background:transparent;cursor:pointer;font-family:inherit}
 .chip.on{color:#111}
 .area .pol{display:inline-flex;gap:2px;margin-right:4px}.area .sm.pl{padding:2px 6px}
+
+.tip{position:fixed;z-index:20;max-width:340px;background:#1b1e25f2;border:1px solid #333845;border-radius:10px;padding:10px 12px;font-size:12.5px;line-height:1.45;color:#dcd9d1;pointer-events:none;opacity:0;transition:opacity .12s;box-shadow:0 6px 24px #0008}
+.tip.on{opacity:1}
+.tip h4{margin:0 0 2px;font-size:13.5px;color:var(--ink)}
+.tip .k{color:var(--muted);font-size:11.5px;margin-bottom:6px}
+.tip .meta{color:var(--muted);font-size:11.5px;margin-top:6px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend .muted{color:#6c6a64}
+.sw{display:inline-block;width:16px;height:6px;border-radius:2px;background:#9a988f}
+.sw.hollow{background:transparent;border:1.5px solid #9a988f;height:7px}
+.grad{display:inline-block;width:90px;height:8px;border-radius:4px;background:linear-gradient(90deg,#5aa6e8,#202228 50%,#f0a04b)}
+.ring{display:inline-block;width:11px;height:11px;border-radius:50%;border:2px solid #e0c35a}
+.ring.dash{border:2px dashed #5aa6e8}
+.area .head .nm{cursor:help}
+figcaption{line-height:1.6}
