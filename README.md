@@ -8,6 +8,15 @@ A synthesizer played by the *Drosophila* visual system. A stimulus (or your webc
 
 - **The fly.** This is the best model of the 50-model flyvis ensemble (Lappalainen et al., *Nature* 2024): 45,669 neurons in 65 cell types and 1.45 M synapses on a 721-column hex eye. Its wiring comes from the FIB-SEM optic-lobe connectome, and its cell and synapse parameters were trained so the network computes optic flow. Every pair of cell types connects through one spatial filter that repeats at every column, so the whole network ships as 2,355 filters (`data/fly.json`, 57 kB). The browser rebuilds it and integrates it in a Web Worker at 20 ms per step (about 2.5 ms of compute per step). The JS port matches PyTorch to a median correlation of 1.000 (minimum 0.996 across cell types; `tools/validate_engine.js`).
 - **The eye.** The webcam is the default, sampled at each ommatidium and re-centred on grey. If no camera is available it falls back to a drifting grating. Other stimuli are drawn directly onto the 721 ommatidia: gratings, moving edges and bars, looming disks, drifting dots, full-field flashes, drawing with the pointer, or the webcam sampled at each ommatidium.
+- **What the fly sees** (the main view). A large compound-eye display with one hexagonal facet per ommatidium, plus a "what you see" inset showing the full-resolution camera or stimulus and the eye's footprint. Six lenses show the same scene at successive stages:
+  - **Photoreceptors:** the input image.
+  - **Lamina contrast:** L1 + L2.
+  - **ON channel:** Mi1 + Tm3.
+  - **OFF channel:** Tm1, Tm2, Tm4, Tm9.
+  - **Motion:** T4/T5 summed as vectors along each subtype's preferred direction, which is measured with moving edges and stored in `fly.json`. Hue shows direction, with optional arrows.
+  - **Medulla → lamina feedback.**
+
+  The outer two rings of the eye are shown but not used as signal, because the model truncates their inputs.
 - **The strings.** Each string is a cell type, optionally split into 7 regions of the eye. It plucks when its depolarization relative to grey rises past a threshold, measured in units of that type's own response range. It re-arms once it falls back below.
 - **Pitch** follows depth in the visual system: retina lowest, then lamina, medulla, transmedulla and T4/T5 highest. Within a layer, strings climb the chosen scale. **Pan** follows the region's position on the eye, and **loudness** follows response size.
 - **Tempo** slows fly time relative to real time, so the cascade's real latencies become audible arpeggios.
@@ -31,6 +40,8 @@ js/app.js            UI, string detectors, drawing
 js/info.js           putative roles of areas and cell types (hover cards)
 data/fly.json        exported model
 tools/export_model.py   export from flyvis (pip install flyvis; flyvis download-pretrained)
+tools/precompute_directions.js  measure T4/T5 preferred directions into data/fly.json
+tools/lens_test.py   screenshot each eye lens for a moving edge
 tools/validate_engine.js  compare the JS engine with a PyTorch reference trace
 tools/smoke_test.py, tools/engine_levels.py, tools/webcam_test.py  headless checks of the page, each voice engine, and the webcam path (Chrome fake camera)
 ```

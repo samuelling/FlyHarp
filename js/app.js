@@ -42,7 +42,7 @@
   }
   $('kind').onchange = async () => {
     P.kind = $('kind').value;
-    $('eyehint').textContent = P.kind === 'paint' ? '· drag on the eye to draw (polarity sets dark/bright)' : '';
+    $('eyehint').textContent = P.kind === 'paint' ? 'Drag on the eye to draw; polarity sets dark or bright.' : 'Tip: drag on the eye to draw on it.';
     if (P.kind === 'webcam') await useCamera();
   };
   // the webcam is the default eye; if the camera is refused or missing, fall back to a drifting grating
@@ -239,7 +239,13 @@
     const m = e.data;
     if (m.cmd === 'ready') {
       types = m.types; X = m.x; Y = m.y; nodeOf = m.nodeOf; region = m.region; NR = m.NR; scale = m.scale;
-      tauList = m.tau; fbInfo = m.fbInfo;
+      tauList = m.tau; fbInfo = m.fbInfo; prefDir = m.prefDir || {};
+      // lattice indices (from pixel coords) and neighbours, for the motion arrows
+      u = m.x.map((x, i) => Math.round(-m.y[i] - Math.round(x / 0.8660254) / 2)); v = m.x.map(x => Math.round(x / 0.8660254));
+      nbr = m.x.map((x, i) => m.x.map((x2, j) => j).filter(j => (m.x[j] - x) ** 2 + (m.y[j] - m.y[i]) ** 2 < 1.1));
+      // the outer two rings of the eye lack part of their inputs in the model: shown, but not as signal
+      edge = m.x.map((x, i) => Math.max(Math.abs(u[i]), Math.abs(v[i]), Math.abs(u[i] + v[i])) >= 14);
+      renderLenses();
       if (fbInfo) $('fbHint').innerHTML = `Medulla → lamina feedback shapes the timbre. In this model ${(100 * fbInfo.fraction).toFixed(0)}% of the synaptic weight onto L1–L5 comes from medulla-resident cells (${fbInfo.sources.slice(0, 4).map(([k]) => k).join(', ')}…). Net inhibitory feedback damps notes (darker, shorter); net excitatory feedback brightens them.`;
       const order = types.map((t, i) => [m.tau[i], t]).sort((a, b) => a[0] - b[0]);
       order.forEach(([, t], r) => tauRank[t] = r / (order.length - 1));
@@ -247,7 +253,7 @@
       if (P.kind === 'webcam') useCamera();
       status(`${m.N.toLocaleString()} neurons, ${(m.nE / 1e6).toFixed(2)}M synapses running · press Start for sound`);
     } else if (m.cmd === 'frames') {
-      busy = false; lastDV = m.dV;
+      busy = false; lastDV = m.dV; lastFbc = m.fbc;
       const batch = pendingBatch; pendingBatch = null;
       const events = [];
       m.steps.forEach((a, k) => { const evs = []; detect(a, batch.t0 + k * DT, evs); evs.forEach(ev => { ev.delay = k * DT / batch.tempo * 1000; events.push(ev); }); });
@@ -277,34 +283,166 @@
       }
       if (acc > 10 * DT) acc = 10 * DT; // don't build up debt if the browser can't keep up
     }
-    drawEye(); drawRoll(realDt); drawFb(); if ((frameN++ & 1) === 0) drawCascade();
+    drawEye(); if ((frameN & 1) === 0) drawRaw(); drawRoll(realDt); drawFb(); if ((frameN++ & 1) === 0) drawCascade();
     requestAnimationFrame(tick);
   }
   let frameN = 0;
   const stats = {notes: 0, byGroup: [0, 0, 0, 0, 0], dep: 0, hyp: 0};
   window.__flyharp = {stats, P, area, fbR, get fbInfo() { return fbInfo; }, get strings() { return strings; }, get simT() { return simT; }, toggleType: t => toggleType(t)};
 
-  // ---------------------------------------------------------------- drawing: eye
+  // ---------------------------------------------------------------- drawing: the eye and its lenses
+  const LENSES = [
+    {id: 'photo', name: 'Photoreceptors', col: '#d9d6ce', sub: 'the image at 721 points',
+      info: 'Each facet is one ommatidium, about 5° across. Eight photoreceptors in each look at the same point; this is their input. The fly\'s acuity is roughly a hundred times coarser than yours, but it updates far faster.'},
+    {id: 'lamina', name: 'Lamina contrast', col: '#4fb3a4', sub: 'L1 + L2: change, not light', types: ['L1', 'L2'],
+      info: 'L1 and L2 hyperpolarise to brightening (blue) and depolarise to dimming (orange). They report temporal contrast, so a still scene fades and edges flare when they move.'},
+    {id: 'on', name: 'ON channel', col: '#e0c35a', sub: 'Mi1 + Tm3: brightening edges', types: ['Mi1', 'Tm3'],
+      info: 'The medulla re-inverts L1 into an ON signal: Mi1 and Tm3 depolarise (orange) where light increases. They are the fast inputs to the T4 motion detectors.'},
+    {id: 'off', name: 'OFF channel', col: '#e88a4f', sub: 'Tm1, Tm2, Tm4, Tm9: darkening', types: ['Tm1', 'Tm2', 'Tm4', 'Tm9'],
+      info: 'The transmedullary OFF cells depolarise (orange) where light decreases. They feed T5. Tm9 is slow and carries luminance from L3, so it lags the others.'},
+    {id: 'motion', name: 'Motion', col: '#e2576b', sub: 'T4 + T5: direction field', types: ['T4a', 'T4b', 'T4c', 'T4d', 'T5a', 'T5b', 'T5c', 'T5d'],
+      info: 'The eight T4/T5 subtypes each prefer one direction, which FlyHarp measures at start-up with moving edges. Summing their responses as vectors gives a direction field: hue is direction (see the wheel), brightness is strength. This is the input to the fly\'s optic-flow neurons.'},
+    {id: 'feedback', name: 'Feedback', col: '#7f8cff', sub: 'medulla → lamina', info: 'The feedback current from medulla-resident cells (C2, C3, Lawf and medulla interneurons) onto L1–L5, relative to grey. Blue is net inhibition, gold is net excitation. This is what shapes the timbre in the Feedback panel.'},
+  ];
+  let lens = 'motion', prefDir = {}, lastFbc = null;
+  const lensMax = {};
+  function renderLenses() {
+    $('lenses').innerHTML = LENSES.map(L => `<button class="lens ${L.id === lens ? 'on' : ''}" data-l="${L.id}"><i class="bar" style="background:${L.col}"></i><b>${L.name}</b><span>${L.sub}</span></button>`).join('');
+    $('lenses').querySelectorAll('.lens').forEach(b => b.onclick = () => { lens = b.dataset.l; renderLenses(); });
+    const L = LENSES.find(x => x.id === lens);
+    $('lensInfo').textContent = L.info; $('lensTag').textContent = L.name;
+    $('arrows').parentElement.style.display = lens === 'motion' ? '' : 'none';
+    $('underlay').parentElement.style.display = lens === 'photo' ? 'none' : '';
+    drawLegend();
+  }
+  function drawLegend() {
+    const el = $('lensLegend');
+    if (lens === 'motion') {
+      el.innerHTML = '<canvas id="wheel" width="44" height="44"></canvas><span>direction on the eye (hue) · brighter = stronger motion signal</span>';
+      const c = $('wheel').getContext('2d');
+      for (let a = 0; a < 360; a += 3) { c.fillStyle = `hsl(${a},80%,58%)`; c.beginPath(); c.moveTo(22, 22); c.arc(22, 22, 21, a * Math.PI / 180, (a + 4) * Math.PI / 180); c.fill(); }
+      c.fillStyle = '#16181d'; c.beginPath(); c.arc(22, 22, 9, 0, 2 * Math.PI); c.fill();
+    } else if (lens === 'photo') el.innerHTML = '<i class="grad" style="background:linear-gradient(90deg,#000,#fff)"></i><span>dark → bright</span>';
+    else if (lens === 'feedback') el.innerHTML = '<i class="grad" style="background:linear-gradient(90deg,#7f8cff,#202228 50%,#f0c75a)"></i><span>net inhibitory · none · net excitatory</span>';
+    else el.innerHTML = '<i class="grad"></i><span>hyperpolarised · rest · depolarised (relative to a grey screen)</span>';
+  }
+  $('underlay').onchange = () => {}; $('arrows').onchange = () => {};
+
   const eye = $('eye'), ex = eye.getContext('2d');
-  function eyeScale() { return (eye.width / 2 - 12) / 15.5; }
+  function eyeScale() { return (eye.width / 2 - 18) / 15.5; }
+  const hexPath = (x, y, r) => { ex.beginPath(); for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3; i ? ex.lineTo(x + r * Math.cos(a), y + r * Math.sin(a)) : ex.moveTo(x + r * Math.cos(a), y + r * Math.sin(a)); } ex.closePath(); };
+  const lerp = (a, b, t) => a + (b - a) * t;
+  function divColor(v) { // blue · dark grey · orange
+    const t = Math.min(1, Math.abs(v)), lo = [32, 34, 40], hi = v < 0 ? [90, 166, 232] : [240, 160, 75];
+    return [lerp(lo[0], hi[0], t), lerp(lo[1], hi[1], t), lerp(lo[2], hi[2], t)];
+  }
+  function lensValues() {
+    const n = X.length, out = new Float32Array(n);
+    const L = LENSES.find(x => x.id === lens);
+    if (lens === 'feedback') { if (lastFbc) out.set(lastFbc); }
+    else if (L.types && lastDV) {
+      const ts = L.types.map(t => types.indexOf(t)).filter(i => i >= 0);
+      for (const t of ts) { const arr = nodeOf[t], sc = scale[t]; for (let k = 0; k < n; k++) if (arr[k] >= 0) out[k] += lastDV[arr[k]] / sc / ts.length; }
+    }
+    // display gain: track the 98th percentile of |value| (fast attack, slow release)
+    const a = Array.from(out, Math.abs).sort((x, y) => x - y), p98 = Math.max(a[Math.floor(0.98 * (n - 1))], 1e-6);
+    const m = lensMax[lens] || p98; lensMax[lens] = p98 > m ? p98 : m * 0.985 + p98 * 0.015;
+    const g = Math.max(lensMax[lens], 0.5);   // never amplify weak signals beyond half the type's response range
+    for (let k = 0; k < n; k++) out[k] = edge[k] ? 0 : out[k] / g;
+    return out;
+  }
+  function motionField() {
+    const n = X.length, vx = new Float32Array(n), vy = new Float32Array(n);
+    if (!lastDV) return {vx, vy, mags: new Float32Array(n), norm: 1};
+    for (const t of Object.keys(prefDir)) {
+      const ti = types.indexOf(t), arr = nodeOf[ti], sc = scale[ti], c = Math.cos(prefDir[t]), s = Math.sin(prefDir[t]);
+      for (let k = 0; k < n; k++) { const d = lastDV[arr[k]] / sc; if (d > 0) { vx[k] += d * c; vy[k] += d * s; } }
+    }
+    let mx = 1e-6; const mags = new Float32Array(n);
+    for (let k = 0; k < n; k++) { mags[k] = Math.hypot(vx[k], vy[k]); }
+    const srt = Array.from(mags).sort((a, b) => a - b); mx = Math.max(srt[Math.floor(0.98 * (n - 1))], 1e-6);
+    const m = lensMax.motion || mx; lensMax.motion = mx > m ? mx : m * 0.985 + mx * 0.015;
+    for (let k = 0; k < n; k++) if (edge[k]) { mags[k] = 0; vx[k] = 0; vy[k] = 0; }
+    return {vx, vy, mags, norm: Math.max(lensMax.motion, 0.5)};
+  }
   function drawEye() {
     if (!ready) return;
-    const s = eyeScale(), cx = eye.width / 2, cy = eye.height / 2;
-    ex.fillStyle = '#0a0b0d'; ex.fillRect(0, 0, eye.width, eye.height);
+    const s = eyeScale(), cx = eye.width / 2, cy = eye.height / 2, r = s * 0.555;
+    ex.clearRect(0, 0, eye.width, eye.height);
+    const under = $('underlay').checked || lens === 'photo';
+    const vals = lens === 'photo' || lens === 'motion' ? null : lensValues();
+    const mf = lens === 'motion' ? motionField() : null;
     for (let i = 0; i < X.length; i++) {
-      const v = Math.round(lastLum[i] * 255);
-      ex.fillStyle = `rgb(${v},${v},${v})`;
-      ex.beginPath(); ex.arc(cx + X[i] * s, cy + Y[i] * s, s * 0.47, 0, 2 * Math.PI); ex.fill();
+      const x = cx + X[i] * s, y = cy + Y[i] * s, g = lastLum[i] * 255;
+      let col;
+      if (lens === 'photo') col = [g, g, g];
+      else if (mf) {
+        const m = Math.max(0, Math.min(1, mf.mags[i] / mf.norm) - 0.1) / 0.9, hue = (Math.atan2(mf.vy[i], mf.vx[i]) * 180 / Math.PI + 360) % 360;
+        const [hr, hg, hb] = hsl(hue, 0.8, 0.58), base = under ? g * 0.42 : 28;
+        col = [lerp(base, hr, m), lerp(base, hg, m), lerp(base, hb, m)];
+      } else {
+        const v = Math.max(-1, Math.min(1, vals[i])), c = lens === 'feedback' && v > 0 ? [lerp(32, 240, v), lerp(34, 199, v), lerp(40, 90, v)] : lens === 'feedback' ? [lerp(32, 127, -v), lerp(34, 140, -v), lerp(40, 255, -v)] : divColor(v);
+        const base = under ? g * 0.42 : 30, t = Math.min(1, Math.abs(v) * 1.2);
+        col = [lerp(base, c[0], t), lerp(base, c[1], t), lerp(base, c[2], t)];
+      }
+      ex.fillStyle = `rgb(${col[0] | 0},${col[1] | 0},${col[2] | 0})`;
+      hexPath(x, y, r); ex.fill();
+    }
+    // facet sheen: a soft highlight like light on the cornea
+    const grd = ex.createRadialGradient(cx - eye.width * 0.18, cy - eye.height * 0.22, 10, cx, cy, eye.width * 0.55);
+    grd.addColorStop(0, 'rgba(255,255,255,0.07)'); grd.addColorStop(0.5, 'rgba(255,255,255,0.015)'); grd.addColorStop(1, 'rgba(0,0,0,0.18)');
+    ex.fillStyle = grd; ex.fillRect(0, 0, eye.width, eye.height);
+    if (mf && $('arrows').checked) {
+      ex.lineWidth = 1.6; ex.lineCap = 'round';
+      for (let i = 0; i < X.length; i++) {
+        if ((u[i] - v[i]) % 3 !== 0 || u[i] % 3 !== 0) continue;
+        let ax = 0, ay = 0, nn = 0;
+        for (const j of nbr[i]) { ax += mf.vx[j]; ay += mf.vy[j]; nn++; }
+        const m = Math.hypot(ax, ay) / nn / mf.norm; if (m < 0.18) continue;
+        const L = Math.min(1, m) * s * 2.4, ang = Math.atan2(ay, ax), x0 = cx + X[i] * s, y0 = cy + Y[i] * s;
+        const x1 = x0 + Math.cos(ang) * L, y1 = y0 + Math.sin(ang) * L;
+        ex.strokeStyle = `rgba(255,255,255,${0.35 + 0.6 * Math.min(1, m)})`;
+        ex.beginPath(); ex.moveTo(x0 - Math.cos(ang) * L * 0.3, y0 - Math.sin(ang) * L * 0.3); ex.lineTo(x1, y1);
+        ex.lineTo(x1 - Math.cos(ang - 0.5) * 5, y1 - Math.sin(ang - 0.5) * 5); ex.moveTo(x1, y1); ex.lineTo(x1 - Math.cos(ang + 0.5) * 5, y1 - Math.sin(ang + 0.5) * 5); ex.stroke();
+      }
     }
     if ($('spatial').checked) {
-      // the 7 eye regions that each string listens to separately (centre + 6 sectors)
       const R = Stimuli.radius() * s;
-      ex.strokeStyle = 'rgba(240,160,75,0.45)'; ex.lineWidth = 1; ex.setLineDash([4, 4]);
+      ex.strokeStyle = 'rgba(240,160,75,0.28)'; ex.lineWidth = 1; ex.setLineDash([4, 5]);
       ex.beginPath(); ex.arc(cx, cy, R / 3, 0, 2 * Math.PI); ex.stroke();
-      for (let k = 0; k < 6; k++) { const a = -Math.PI + k * Math.PI / 3; ex.beginPath(); ex.moveTo(cx + Math.cos(a) * R / 3, cy + Math.sin(a) * R / 3); ex.lineTo(cx + Math.cos(a) * R * 1.02, cy + Math.sin(a) * R * 1.02); ex.stroke(); }
+      for (let k = 0; k < 6; k++) { const a = -Math.PI + k * Math.PI / 3; ex.beginPath(); ex.moveTo(cx + Math.cos(a) * R / 3, cy + Math.sin(a) * R / 3); ex.lineTo(cx + Math.cos(a) * R * 1.03, cy + Math.sin(a) * R * 1.03); ex.stroke(); }
       ex.setLineDash([]);
     }
   }
+  function hsl(h, s, l) {
+    const k = n => (n + h / 30) % 12, a = s * Math.min(l, 1 - l), f = n => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+    return [255 * f(0), 255 * f(8), 255 * f(4)];
+  }
+  // "what you see": the camera frame (mirrored like the eye) or the stimulus at full resolution, with the eye's footprint
+  const raw = $('raw'), rx2 = raw.getContext('2d');
+  let fineX = null, fineY = null, fineImg = null;
+  function drawRaw() {
+    if (!ready) return;
+    const W = raw.width, H = raw.height, vid = P.kind === 'webcam' ? Stimuli.video() : null, Rr = Stimuli.radius();
+    if (vid) {
+      rx2.save(); rx2.translate(W, 0); rx2.scale(-1, 1); rx2.drawImage(vid, 0, 0, W, H); rx2.restore();
+      rx2.strokeStyle = 'rgba(240,160,75,0.8)'; rx2.lineWidth = 1.2; rx2.beginPath(); rx2.arc(W / 2, H / 2, (Math.min(160, 120) / 2 - 1) * W / 160, 0, 2 * Math.PI); rx2.stroke();
+      return;
+    }
+    if (!fineX) {
+      const nx = 100, ny = 75; fineX = new Float32Array(nx * ny); fineY = new Float32Array(nx * ny);
+      const span = 2 * Rr * 1.15;
+      for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) { fineX[j * nx + i] = (i / (nx - 1) - 0.5) * span * W / H; fineY[j * nx + i] = (j / (ny - 1) - 0.5) * span; }
+      fineImg = rx2.createImageData(nx, ny);
+    }
+    const L = Stimuli.frameAt(fineX, fineY, P, simT, new Float32Array(fineX.length)), d = fineImg.data;
+    for (let k = 0; k < L.length; k++) { const g = L[k] * 255; d[4 * k] = g; d[4 * k + 1] = g; d[4 * k + 2] = g; d[4 * k + 3] = 255; }
+    const tmp = drawRaw.c || (drawRaw.c = Object.assign(document.createElement('canvas'), {width: 100, height: 75}));
+    tmp.getContext('2d').putImageData(fineImg, 0, 0);
+    rx2.imageSmoothingEnabled = true; rx2.drawImage(tmp, 0, 0, W, H);
+    rx2.strokeStyle = 'rgba(240,160,75,0.8)'; rx2.lineWidth = 1.2; rx2.beginPath(); rx2.arc(W / 2, H / 2, H / 2 / 1.15, 0, 2 * Math.PI); rx2.stroke();
+  }
+  let u = [], v = [], nbr = [], edge = [];
   let drawing = false;
   const paintAt = (e) => {
     const r = eye.getBoundingClientRect(), s = eyeScale() * r.width / eye.width;

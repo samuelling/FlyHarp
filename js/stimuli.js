@@ -106,5 +106,12 @@ const Stimuli = (() => {
   }
 
   function addPaint(x, y, t, sign) { paint.pts.push({x, y, t, sign}); }
-  return {init, frame, startCamera, addPaint, radius: () => R};
+  // render the same stimulus at any set of points (used for the full-resolution "what you see" view)
+  function frameAt(xa, ya, p, t, out) {
+    const sx = X, sy = Y, sn = nC, keep = paint.pts.slice();
+    X = xa; Y = ya; nC = xa.length;
+    try { frame(p, t, out); } finally { X = sx; Y = sy; nC = sn; paint.pts = keep; }
+    return out;
+  }
+  return {init, frame, frameAt, startCamera, addPaint, radius: () => R, video: () => cam.ok ? cam.video : null};
 })();

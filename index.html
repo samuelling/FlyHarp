@@ -79,16 +79,27 @@
   </aside>
 
   <section id="stage">
-    <div class="top">
-      <figure class="eyebox">
-        <canvas id="eye" width="360" height="360"></canvas>
-        <figcaption>what the fly sees: 721 ommatidia<span id="eyehint"></span></figcaption>
-      </figure>
-      <figure class="rollbox">
-        <canvas id="roll" width="760" height="360"></canvas>
-        <figcaption class="legend"><span><i class="sw fill"></i>depolarisation</span><span><i class="sw hollow"></i>hyperpolarisation (octave down, swells in)</span><span class="muted">bands: each area's pitch range · time runs right → left</span></figcaption>
-      </figure>
-    </div>
+    <section class="hero">
+      <div class="heroEye">
+        <canvas id="eye" width="640" height="640"></canvas>
+        <div class="lensTag" id="lensTag"></div>
+        <figure class="raw"><canvas id="raw" width="200" height="150"></canvas><figcaption>what you see</figcaption></figure>
+      </div>
+      <div class="lensPanel">
+        <h2 class="heroTitle">What the fly sees</h2>
+        <p class="lead">Your camera, through 721 ommatidia. Then follow the image down the fly's visual system: each lens shows the same scene as one stage of the optic lobe represents it, live.</p>
+        <div id="lenses" class="lenses"></div>
+        <div class="lensInfo" id="lensInfo"></div>
+        <div class="lensLegend" id="lensLegend"></div>
+        <label class="row small"><input type="checkbox" id="underlay" checked> show the image under the signal</label>
+        <label class="row small"><input type="checkbox" id="arrows" checked> motion arrows</label>
+        <p class="hint" id="eyehint"></p>
+      </div>
+    </section>
+    <figure class="rollbox">
+      <canvas id="roll" width="1180" height="260"></canvas>
+      <figcaption class="legend"><span><i class="sw fill"></i>depolarisation</span><span><i class="sw hollow"></i>hyperpolarisation (octave down, swells in)</span><span class="muted">bands: each area's pitch range · time runs right → left</span></figcaption>
+    </figure>
     <figure>
       <canvas id="cascade" width="1180" height="432"></canvas>
       <figcaption class="legend"><span><i class="grad"></i>hyperpolarised · grey · depolarised (relative to a grey screen)</span><span><i class="ring"></i>pluck</span><span><i class="ring dash"></i>hyperpolarisation pluck</span><span class="muted">bright = strung · click a map to string it · hover for what each cell does</span></figcaption>

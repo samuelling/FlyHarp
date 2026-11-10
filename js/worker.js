@@ -28,13 +28,14 @@ self.onmessage = async (ev) => {
     scale = calibrate();
     eng.settle(0.5, 2);
     self.postMessage({cmd: 'ready', N: eng.N, nE: eng.nE, types: model.types, x: Array.from(xs), y: Array.from(ys),
-      nodeOf: eng.nodeOf.map(a => Array.from(a)), region: Array.from(region), NR, scale: Array.from(scale), tau: model.tau, fbInfo});
+      nodeOf: eng.nodeOf.map(a => Array.from(a)), region: Array.from(region), NR, scale: Array.from(scale), tau: model.tau, fbInfo, prefDir});
   } else if (msg.cmd === 'run') {
     const out = [];
     for (const lum of msg.frames) { eng.step(lum); out.push(withFeedback(regionActivity())); }
     const dV = new Float32Array(eng.N);
     for (let i = 0; i < eng.N; i++) dV[i] = eng.V[i] - eng.V0[i];
-    self.postMessage({cmd: 'frames', steps: out, dV}, [dV.buffer]);
+    const fbc = feedbackCols();
+    self.postMessage({cmd: 'frames', steps: out, dV, fbc}, [dV.buffer, fbc.buffer]);
   } else if (msg.cmd === 'reset') {
     eng.settle(0.5, 2);
   }
@@ -58,7 +59,7 @@ function regionActivity() {
 // response scale per cell type and sign: peak regional activity to full-field gratings and ON/OFF flashes
 function calibrate() {
   eng.settle(0.5, 2);
-  eng.step(new Float32Array(eng.nC).fill(0.5)); fb0 = feedbackNow();
+  eng.step(new Float32Array(eng.nC).fill(0.5)); fb0 = feedbackNow(); fbCol0 = null; fbCol0 = feedbackCols();
   let fbMax = 1e-6;
   const nC = eng.nC, nT = eng.nT, M = nT * NR, sc = new Float32Array(2 * nT), lum = new Float32Array(nC);
   const run = (fn, n) => { for (let s = 0; s < n; s++) { fn(s, lum); eng.step(lum); const a = regionActivity();
@@ -72,10 +73,11 @@ function calibrate() {
   run((s, L) => L.fill(s < 15 ? 1 : s < 30 ? 0.5 : s < 45 ? 0 : 0.5), 60);
   for (let t = 0; t < 2 * nT; t++) sc[t] = Math.max(sc[t], 1e-4);
   fbScale = 0.4 * fbMax; // so ordinary stimuli span most of the ±1 range
+  if (eng.m.pref_dir) prefDir = eng.m.pref_dir; else measureDirections();  // precomputed by tools/precompute_directions.js
   return sc;
 }
 
-let fbInfo = null;
+let fbInfo = null, fbCol0 = null, prefDir = {};
 function setupFeedback(model) {
   const T = model.types, isL = new Set(['L1', 'L2', 'L3', 'L4', 'L5'].map(t => T.indexOf(t)));
   const lamina = /^(R\d|L\d|Am|T1)$/;
@@ -104,9 +106,38 @@ function feedbackNow() {
   for (let r = 0; r < NR; r++) f[r] /= Math.max(fbCount[r], 1);
   return f;
 }
+// feedback current onto L1-L5 per column (mean over the five L types), relative to grey
+function feedbackCols() {
+  const R = eng.R, f = new Float32Array(eng.nC);
+  for (let k = 0; k < fbEdge.length; k++) { const p = fbEdge[k]; f[eng.nodeCol[fbTgt[k]]] += eng.w[p] * R[eng.src[p]]; }
+  for (let c = 0; c < eng.nC; c++) f[c] = (f[c] / 5 - (fbCol0 ? fbCol0[c] : 0)) / (fbCol0 ? fbScale : 1);
+  return f;
+}
 function withFeedback(a) {
   const f = feedbackNow(), out = new Float32Array(a.length + NR);
   out.set(a);
   for (let r = 0; r < NR; r++) out[a.length + r] = (f[r] - fb0[r]) / fbScale;
   return out;
+}
+
+// preferred direction of each T4/T5 subtype on this eye: moving ON edges (for T4) and OFF edges (for T5)
+// in 12 directions, response-weighted circular mean
+function measureDirections() {
+  const T = eng.types, ds = Array.from({length: 12}, (_, i) => i * Math.PI / 6), nC = eng.nC, lum = new Float32Array(nC);
+  const sub = T.map((t, i) => [t, i]).filter(([t]) => /^T[45][a-d]$/.test(t));
+  const acc = Object.fromEntries(sub.map(([t]) => [t, [0, 0]]));
+  let R = 0; for (let k = 0; k < nC; k++) R = Math.max(R, Math.hypot(xs[k], ys[k]));
+  for (const pol of [1, -1]) for (const th of ds) {
+    eng.settle(0.5, 0.6);
+    const resp = Object.fromEntries(sub.map(([t]) => [t, 0]));
+    const n = Math.round((2 * R + 4) / 12 / eng.dt);  // edge sweeps at 12 columns/s
+    for (let s = 0; s < n; s++) {
+      const pos = -R - 2 + 12 * s * eng.dt;
+      for (let k = 0; k < nC; k++) lum[k] = 0.5 * (1 + ((xs[k] * Math.cos(th) + ys[k] * Math.sin(th)) < pos ? 0.8 * pol : 0));
+      eng.step(lum);
+      for (const [t, i] of sub) { if ((t[1] === '4') !== (pol > 0)) continue; for (const nd of typeNodes[i]) { const d = eng.V[nd] - eng.V0[nd]; if (d > 0) resp[t] += d; } }
+    }
+    for (const [t] of sub) { acc[t][0] += resp[t] * Math.cos(th); acc[t][1] += resp[t] * Math.sin(th); }
+  }
+  for (const [t] of sub) prefDir[t] = Math.atan2(acc[t][1], acc[t][0]);
 }
