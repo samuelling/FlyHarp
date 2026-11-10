@@ -311,19 +311,53 @@
       info: 'Each facet is one ommatidium, about 5° across. Eight photoreceptors in each look at the same point; this is their input. The fly\'s acuity is roughly a hundred times coarser than yours, but it updates far faster.'},
     {id: 'lamina', name: 'Lamina contrast', col: '#4fb3a4', sub: 'L1 + L2: change, not light', types: ['L1', 'L2'],
       info: 'L1 and L2 hyperpolarise to brightening (blue) and depolarise to dimming (orange). They report temporal contrast, so a still scene fades and edges flare when they move.'},
-    {id: 'on', name: 'ON channel', col: '#e0c35a', sub: 'Mi1 + Tm3: brightening edges', types: ['Mi1', 'Tm3'],
+    {id: 'on', name: 'ON channel', col: '#e0c35a', sub: 'Mi1 + Tm3: brightening', types: ['Mi1', 'Tm3'],
       info: 'The medulla re-inverts L1 into an ON signal: Mi1 and Tm3 depolarise (orange) where light increases. They are the fast inputs to the T4 motion detectors.'},
-    {id: 'off', name: 'OFF channel', col: '#e88a4f', sub: 'Tm1, Tm2, Tm4, Tm9: darkening', types: ['Tm1', 'Tm2', 'Tm4', 'Tm9'],
+    {id: 'off', name: 'OFF channel', col: '#e88a4f', sub: 'Tm1/2/4/9: darkening', types: ['Tm1', 'Tm2', 'Tm4', 'Tm9'],
       info: 'The transmedullary OFF cells depolarise (orange) where light decreases. They feed T5. Tm9 is slow and carries luminance from L3, so it lags the others.'},
     {id: 'motion', name: 'Motion', col: '#e2576b', sub: 'T4 + T5: direction field', types: ['T4a', 'T4b', 'T4c', 'T4d', 'T5a', 'T5b', 'T5c', 'T5d'],
       info: 'The eight T4/T5 subtypes each prefer one direction, which FlyHarp measures at start-up with moving edges. Summing their responses as vectors gives a direction field: hue is direction (see the wheel), brightness is strength. This is the input to the fly\'s optic-flow neurons.'},
-    {id: 'feedback', name: 'Feedback', col: '#7f8cff', sub: 'medulla → lamina', info: 'The feedback current from medulla-resident cells (C2, C3, Lawf and medulla interneurons) onto L1–L5, relative to grey. Blue is net inhibition, gold is net excitation. This is what shapes the timbre in the Feedback panel.'},
+    {id: 'feedback', name: 'Feedback', col: '#7f8cff', sub: 'medulla → lamina loop', info: 'The feedback current from medulla-resident cells (C2, C3, Lawf and medulla interneurons) onto L1–L5, relative to grey. Blue is net inhibition, gold is net excitation. This is what shapes the timbre in the Feedback panel.'},
   ];
+  // the lenses are laid out as the optic lobe is wired: one image, split by the lamina into ON and OFF streams,
+  // which reconverge on the direction-selective T4/T5 cells; feedback is the loop from medulla back to lamina
+  const LENS_STAGES = ['Retina', 'Lamina', 'Medulla', 'Lobula plate'];
+  const LENS_POS = {photo: 'grid-area:1/2/2/4', lamina: 'grid-area:2/2/3/4', on: 'grid-area:3/2/4/3', off: 'grid-area:3/3/4/4',
+    motion: 'grid-area:4/2/5/4', feedback: 'grid-area:2/4/4/5'};
+  const LENS_EDGES = [['photo', 'lamina'], ['lamina', 'on'], ['lamina', 'off'], ['on', 'motion'], ['off', 'motion'], ['off', 'feedback', 'fb'], ['feedback', 'lamina', 'fb']];
+  const LENS_UP = {photo: [], lamina: ['photo'], on: ['lamina', 'photo'], off: ['lamina', 'photo'], motion: ['on', 'off', 'lamina', 'photo'], feedback: ['on', 'off', 'lamina']};
+  function drawWires(lit) {
+    const box = $('lenses'), svg = box.querySelector('.wires'); if (!svg) return;
+    const R = box.getBoundingClientRect(), r = id => { const q = box.querySelector(`[data-l="${id}"]`).getBoundingClientRect(); return {l: q.left - R.left, r: q.right - R.left, t: q.top - R.top, b: q.bottom - R.top, cx: (q.left + q.right) / 2 - R.left, cy: (q.top + q.bottom) / 2 - R.top}; };
+    svg.setAttribute('viewBox', `0 0 ${R.width} ${R.height}`);
+    const head = (x, y, ang) => { const a = 5; return `M${x},${y} L${x - a * Math.cos(ang - .5)},${y - a * Math.sin(ang - .5)} M${x},${y} L${x - a * Math.cos(ang + .5)},${y - a * Math.sin(ang + .5)}`; };
+    svg.innerHTML = LENS_EDGES.map(([a, b, kind]) => {
+      const A = r(a), B = r(b), on = lit.has(a) && lit.has(b);
+      let d, x1, y1, x2, y2;
+      if (!kind) {
+        // feed-forward: bottom of the source to top of the target; side-by-side medulla nodes leave and arrive off-centre
+        x1 = b === 'on' ? A.cx - (A.r - A.l) * .22 : b === 'off' ? A.cx + (A.r - A.l) * .22 : a === 'on' ? A.cx + (A.r - A.l) * .2 : a === 'off' ? A.cx - (A.r - A.l) * .2 : A.cx;
+        y1 = A.b; y2 = B.t - 1;
+        x2 = a === 'on' ? B.cx - (B.r - B.l) * .18 : a === 'off' ? B.cx + (B.r - B.l) * .18 : b === 'on' ? B.cx : b === 'off' ? B.cx : B.cx;
+        const m = (y1 + y2) / 2; d = `M${x1},${y1} C${x1},${m} ${x2},${m} ${x2},${y2}`;
+        return `<path class="${on ? 'lit' : ''}" d="${d}"/><path class="hd ${on ? 'lit' : ''}" d="${head(x2, y2, Math.PI / 2)}"/>`;
+      }
+      // feedback loop, dashed: OFF/medulla out to the feedback node, then back up into the lamina
+      if (a === 'off') { x1 = A.r; y1 = A.cy; x2 = B.cx; y2 = B.b; d = `M${x1},${y1} C${x2},${y1} ${x2},${y1} ${x2},${y2 + 1}`; return `<path class="fb ${on ? 'lit' : ''}" d="${d}"/>`; }
+      x1 = A.cx; y1 = A.t; x2 = B.r + 1; y2 = B.cy; d = `M${x1},${y1} C${x1},${y2} ${x1},${y2} ${x2},${y2}`;
+      return `<path class="fb ${on ? 'lit' : ''}" d="${d}"/><path class="hd fb ${on ? 'lit' : ''}" d="${head(x2, y2, Math.PI)}"/>`;
+    }).join('');
+  }
+  new ResizeObserver(() => drawWires(new Set([lens, ...LENS_UP[lens]]))).observe($('lenses'));
   let lens = 'motion', prefDir = {}, lastFbc = null;
   const lensMax = {};
   function renderLenses() {
-    $('lenses').innerHTML = LENSES.map(L => `<button class="lens ${L.id === lens ? 'on' : ''}" data-l="${L.id}"><i class="bar" style="background:${L.col}"></i><b>${L.name}</b><span>${L.sub}</span></button>`).join('');
+    const lit = new Set([lens, ...LENS_UP[lens]]);
+    $('lenses').innerHTML = LENS_STAGES.map((t, i) => `<span class="stage" style="grid-row:${i + 1}">${t}</span>`).join('') +
+      LENSES.map(L => `<button class="lens ${L.id === lens ? 'on' : lit.has(L.id) ? 'path' : ''}" data-l="${L.id}" style="${LENS_POS[L.id]}"><i class="bar" style="background:${L.col}"></i><b>${L.name}</b><span>${L.sub}</span></button>`).join('') +
+      '<svg class="wires" aria-hidden="true"></svg>';
     $('lenses').querySelectorAll('.lens').forEach(b => b.onclick = () => { lens = b.dataset.l; renderLenses(); });
+    drawWires(lit);
     const L = LENSES.find(x => x.id === lens);
     $('lensInfo').textContent = L.info; $('lensTag').textContent = L.name;
     $('arrows').parentElement.style.display = lens === 'motion' ? '' : 'none';
