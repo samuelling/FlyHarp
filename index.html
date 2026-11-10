@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FlyHarp · a synthesizer played by the fly visual system</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header>
+  <div class="brand"><h1>FlyHarp</h1><span>a synthesizer played by the <i>Drosophila</i> visual system</span></div>
+  <button id="go" class="go">▶ Start</button>
+  <div id="status" class="status">loading the optic lobe…</div>
+</header>
+
+<main>
+  <aside id="controls">
+    <section>
+      <h2>Eye</h2>
+      <label>stimulus
+        <select id="kind">
+          <option value="grating">drifting grating</option>
+          <option value="edge">moving edge</option>
+          <option value="bar">moving bar</option>
+          <option value="loom">looming disk</option>
+          <option value="dots">drifting dots</option>
+          <option value="flash">full-field flashes</option>
+          <option value="paint">draw on the eye</option>
+          <option value="webcam">webcam</option>
+        </select></label>
+      <label>contrast <input type="range" id="contrast" min="0.05" max="1" step="0.05" value="0.8"><output></output></label>
+      <label>size <input type="range" id="size" min="2" max="16" step="1" value="8"><output></output></label>
+      <label>speed <input type="range" id="speed" min="0.1" max="4" step="0.1" value="1"><output></output></label>
+      <label>direction <input type="range" id="direction" min="0" max="345" step="15" value="0"><output></output></label>
+      <label class="row">polarity
+        <span class="seg"><button data-pol="1">ON</button><button data-pol="-1" class="on">OFF</button></span></label>
+    </section>
+    <section>
+      <h2>Time</h2>
+      <label>tempo (× real fly time) <input type="range" id="tempo" min="0.05" max="1.5" step="0.05" value="0.35"><output></output></label>
+      <p class="hint">Slow the fly down and each flash becomes an arpeggio: retina → lamina → medulla → lobula plate.</p>
+      <button id="reset" class="small">reset network</button>
+    </section>
+    <section>
+      <h2>Strings</h2>
+      <label>strung to
+        <select id="preset">
+          <option value="cascade">cascade (24 types, retina → motion)</option>
+          <option value="motion">motion detectors (T4/T5 × 4 directions)</option>
+          <option value="early">retina + lamina</option>
+          <option value="all">all 65 cell types</option>
+        </select></label>
+      <label>threshold <input type="range" id="thresh" min="0.03" max="0.6" step="0.01" value="0.15"><output></output></label>
+      <label class="row"><input type="checkbox" id="spatial" checked> one string per eye region (7)</label>
+      <label>max notes / s <input type="range" id="rate" min="4" max="60" step="1" value="24"><output></output></label>
+    </section>
+    <section>
+      <h2>Pitch</h2>
+      <label>scale <select id="scale">
+        <option value="majpent">major pentatonic</option><option value="minpent">minor pentatonic</option>
+        <option value="dorian">dorian</option><option value="lydian">lydian</option><option value="hirajoshi">hirajoshi</option>
+        <option value="whole">whole tone</option><option value="chromatic">chromatic</option></select></label>
+      <label>root <select id="root"></select></label>
+      <label>octave per layer <input type="range" id="spread" min="0" max="2" step="0.5" value="1"><output></output></label>
+    </section>
+    <section>
+      <h2>Output</h2>
+      <label class="row"><input type="checkbox" id="internal" checked> internal harp</label>
+      <label>volume <input type="range" id="vol" min="0" max="1" step="0.05" value="0.7"><output></output></label>
+      <label>reverb <input type="range" id="rev" min="0" max="1" step="0.05" value="0.35"><output></output></label>
+      <label>MIDI out <select id="midiOut"><option value="">none</option></select></label>
+      <label>MIDI channels <select id="midiCh"><option value="layer">one per layer (1–5)</option><option value="single">all on channel 1</option></select></label>
+    </section>
+  </aside>
+
+  <section id="stage">
+    <div class="top">
+      <figure class="eyebox">
+        <canvas id="eye" width="360" height="360"></canvas>
+        <figcaption>what the fly sees: 721 ommatidia <span id="eyehint"></span></figcaption>
+      </figure>
+      <figure class="rollbox">
+        <canvas id="roll" width="760" height="360"></canvas>
+        <figcaption>notes as they fire, coloured by layer (time runs left → right)</figcaption>
+      </figure>
+    </div>
+    <figure>
+      <canvas id="cascade" width="1180" height="430"></canvas>
+      <figcaption>the cascade: every cell type's 721-column map, depolarised (orange) or hyperpolarised (blue) relative to grey. Rings mark plucked strings.</figcaption>
+    </figure>
+    <details class="about">
+      <summary>What am I hearing?</summary>
+      <p>The network is the connectome-constrained model of the fly optic lobe by Lappalainen et al. (Nature 2024), the best of their 50-model ensemble.
+        It has 45,669 neurons in 65 cell types and 1.45 million synapses, with wiring from the FIB-SEM connectome and
+        unmeasured cell and synapse parameters fit so the network computes optic flow. It runs here in your browser, step by step
+        (20 ms of fly time per step), driven by the stimulus or your camera through the photoreceptors.</p>
+      <p>Each "string" is a cell type. When its depolarisation in a region of the eye rises past threshold, relative to
+        that type's own response range, it plucks a note. Pitch follows depth in the visual system: retina lowest, lamina,
+        medulla, transmedulla, then the T4/T5 motion detectors highest. Pan follows the region's position on the eye, and loudness the size of the response.
+        Because the network has real integration time constants, a flash ripples through the layers over tens of milliseconds;
+        slowing the tempo stretches that ripple into a melody.</p>
+      <p class="hint">Code and model export: github.com/samuelling/FlyHarp. Model: flyvis (TuragaLab).</p>
+    </details>
+  </section>
+</main>
+<script src="js/stimuli.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
