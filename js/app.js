@@ -219,6 +219,19 @@
     }
   }
 
+  // the wordmark plays along: each letter belongs to an area and hops when that area plucks; the wing strings ring
+  const letters = [...document.querySelectorAll('.word span')], wingStrings = [...document.querySelectorAll('#logo .strings')];
+  const lastHop = new Float64Array(letters.length);
+  function bounce(g, hyp) {
+    const now = performance.now();
+    letters.forEach((el, i) => {
+      if (+el.dataset.g !== g || now - lastHop[i] < 260) return;
+      lastHop[i] = now; el.classList.remove('hop'); void el.offsetWidth; el.classList.add('hop');
+    });
+    const w = wingStrings[hyp ? 1 : 0];
+    if (w && !w.classList.contains('ring')) { w.classList.add('ring'); setTimeout(() => w.classList.remove('ring'), 230); }
+  }
+
   function fire(ev) {
     const st = strings[ev.s];
     if (!st) return;
@@ -231,6 +244,7 @@
       channel: $('midiCh').value === 'layer' ? st.g + (st.pol < 0 ? 5 : 0) : (st.pol < 0 ? 1 : 0)};
     if (playing) Sound.play(n, {internal: $('internal').checked, midi: true});
     plucks[st.name] = (plucks[st.name] || 0) + 1;
+    bounce(st.g, st.pol < 0);
     roll.push({midi: st.midi, g: st.g, vel: ev.vel, x: rollW, hyp: st.pol < 0}); stats.notes++; stats.byGroup[st.g]++; stats[st.pol < 0 ? 'hyp' : 'dep']++;
   }
 

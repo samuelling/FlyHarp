@@ -3,8 +3,7 @@
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Helvetica,Arial,sans-serif}
 header{display:flex;align-items:center;gap:18px;padding:12px 20px;border-bottom:1px solid var(--line);flex-wrap:wrap}
-.brand h1{margin:0;font-size:22px;letter-spacing:.02em;display:inline}
-.brand span{color:var(--muted);margin-left:10px}
+
 .go{background:var(--acc);color:#1a1206;border:0;border-radius:20px;padding:8px 18px;font:600 14px inherit;cursor:pointer}
 .go.playing{background:#2c2f38;color:var(--ink)}
 .status{color:var(--muted);font-size:12.5px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:4px 12px}
@@ -89,3 +88,22 @@ figcaption{line-height:1.6}
 .lensLegend{display:flex;align-items:center;gap:10px;font-size:11.5px;color:var(--muted);margin-bottom:8px;min-height:44px}
 .lensLegend canvas{border:0;background:none;border-radius:0}
 label.small{font-size:12.5px;margin:3px 0}
+
+.brand{display:flex;align-items:center;gap:10px}
+#logo{width:64px;height:50px;flex:none;overflow:visible}
+#logo .wing{transform-box:fill-box;animation:flutter 2.6s ease-in-out infinite}
+#logo .wing.left{transform-origin:100% 80%}#logo .wing.right{transform-origin:0% 80%;animation-delay:.05s}
+@keyframes flutter{0%,100%{transform:rotate(0)}48%{transform:rotate(0)}50%{transform:rotate(-7deg)}52%{transform:rotate(3deg)}54%{transform:rotate(0)}}
+#logo .wing.right{animation-name:flutterR}
+@keyframes flutterR{0%,100%{transform:rotate(0)}48%{transform:rotate(0)}50%{transform:rotate(7deg)}52%{transform:rotate(-3deg)}54%{transform:rotate(0)}}
+#logo .strings.ring line{animation:ring .22s ease-out}
+@keyframes ring{0%{stroke:#f0a04b;stroke-width:1.1;transform:translateX(.6px)}30%{transform:translateX(-.5px)}60%{transform:translateX(.3px)}100%{stroke:#e9e6df;transform:none}}
+.titles{display:flex;flex-direction:column;line-height:1}
+.word{font-family:Fredoka,"Baloo 2",ui-rounded,system-ui,sans-serif;font-weight:650;font-size:34px;margin:0;letter-spacing:.01em;display:flex}
+.word span{display:inline-block;transition:transform .15s;text-shadow:0 2px 0 #0006}
+.word span[data-g="0"]{color:#a99bf0}.word span[data-g="1"]{color:#5fd0bf}.word span[data-g="2"]{color:#f0d266}
+.word span[data-g="3"]{color:#f29b5e}.word span[data-g="4"]{color:#f06a7e}
+.word span:nth-child(2){transform:rotate(-4deg)}.word span:nth-child(5){transform:translateY(1px) rotate(5deg)}
+.word span.hop{animation:hop .32s cubic-bezier(.3,1.8,.5,1)}
+@keyframes hop{0%{transform:translateY(0) scale(1)}35%{transform:translateY(-7px) scale(1.12,0.92)}70%{transform:translateY(1px) scale(.96,1.05)}100%{transform:translateY(0) scale(1)}}
+.tag{color:var(--muted);font-size:12.5px;margin-top:3px}
