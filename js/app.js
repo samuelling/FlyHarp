@@ -307,17 +307,17 @@
 
   // ---------------------------------------------------------------- drawing: the eye and its lenses
   const LENSES = [
-    {id: 'photo', name: 'Photoreceptors', col: '#d9d6ce', sub: 'the image at 721 points',
+    {id: 'photo', cells: 5353, name: 'Photoreceptors', col: '#d9d6ce', sub: 'the image at 721 points',
       info: 'Each facet is one ommatidium, about 5° across. Eight photoreceptors in each look at the same point; this is their input. The fly\'s acuity is roughly a hundred times coarser than yours, but it updates far faster.'},
-    {id: 'lamina', name: 'Lamina contrast', col: '#4fb3a4', sub: 'L1 + L2: change, not light', types: ['L1', 'L2'],
+    {id: 'lamina', cells: 1586, name: 'Lamina contrast', col: '#4fb3a4', sub: 'L1 + L2: change, not light', types: ['L1', 'L2'],
       info: 'L1 and L2 hyperpolarise to brightening (blue) and depolarise to dimming (orange). They report temporal contrast, so a still scene fades and edges flare when they move.'},
-    {id: 'on', name: 'ON channel', col: '#e0c35a', sub: 'Mi1 + Tm3: brightening', types: ['Mi1', 'Tm3'],
+    {id: 'on', cells: 1655, name: 'ON channel', col: '#e0c35a', sub: 'Mi1 + Tm3: brightening', types: ['Mi1', 'Tm3'],
       info: 'The medulla re-inverts L1 into an ON signal: Mi1 and Tm3 depolarise (orange) where light increases. They are the fast inputs to the T4 motion detectors.'},
-    {id: 'off', name: 'OFF channel', col: '#e88a4f', sub: 'Tm1/2/4/9: darkening', types: ['Tm1', 'Tm2', 'Tm4', 'Tm9'],
+    {id: 'off', cells: 3032, name: 'OFF channel', col: '#e88a4f', sub: 'Tm1/2/4/9: darkening', types: ['Tm1', 'Tm2', 'Tm4', 'Tm9'],
       info: 'The transmedullary OFF cells depolarise (orange) where light decreases. They feed T5. Tm9 is slow and carries luminance from L3, so it lags the others.'},
-    {id: 'motion', name: 'Motion', col: '#e2576b', sub: 'T4 + T5: direction field', types: ['T4a', 'T4b', 'T4c', 'T4d', 'T5a', 'T5b', 'T5c', 'T5d'],
+    {id: 'motion', cells: 6100, name: 'Motion', col: '#e2576b', sub: 'T4 + T5: direction field', types: ['T4a', 'T4b', 'T4c', 'T4d', 'T5a', 'T5b', 'T5c', 'T5d'],
       info: 'The eight T4/T5 subtypes each prefer one direction, which FlyHarp measures at start-up with moving edges. Summing their responses as vectors gives a direction field: hue is direction (see the wheel), brightness is strength. This is the input to the fly\'s optic-flow neurons.'},
-    {id: 'feedback', name: 'Feedback', col: '#7f8cff', sub: 'medulla → lamina loop', info: 'The feedback current from medulla-resident cells (C2, C3, Lawf and medulla interneurons) onto L1–L5, relative to grey. Blue is net inhibition, gold is net excitation. This is what shapes the timbre in the Feedback panel.'},
+    {id: 'feedback', cells: 1833, name: 'Feedback', col: '#7f8cff', sub: 'medulla → lamina loop', info: 'The feedback current from medulla-resident cells (C2, C3, Lawf and medulla interneurons) onto L1–L5, relative to grey. Blue is net inhibition, gold is net excitation. This is what shapes the timbre in the Feedback panel.'},
   ];
   // the lenses are laid out as the optic lobe is wired: one image, split by the lamina into ON and OFF streams,
   // which reconverge on the direction-selective T4/T5 cells; feedback is the loop from medulla back to lamina
@@ -331,7 +331,25 @@
     const R = box.getBoundingClientRect(), r = id => { const q = box.querySelector(`[data-l="${id}"]`).getBoundingClientRect(); return {l: q.left - R.left, r: q.right - R.left, t: q.top - R.top, b: q.bottom - R.top, cx: (q.left + q.right) / 2 - R.left, cy: (q.top + q.bottom) / 2 - R.top}; };
     svg.setAttribute('viewBox', `0 0 ${R.width} ${R.height}`);
     const head = (x, y, ang) => { const a = 5; return `M${x},${y} L${x - a * Math.cos(ang - .5)},${y - a * Math.sin(ang - .5)} M${x},${y} L${x - a * Math.cos(ang + .5)},${y - a * Math.sin(ang + .5)}`; };
-    svg.innerHTML = LENS_EDGES.map(([a, b, kind]) => {
+    // the hourglass behind the wiring: band width at each stage is proportional to how many neurons the lens shows
+    // (one optic lobe, FlyWire v783) - 5,353 photoreceptors squeeze into 1,586 L1/L2, then fan out to 4,687 ON/OFF
+    // medulla cells and 6,100 T4/T5. Per column that's 8 -> 2 -> 6 -> 8.
+    const C = id => LENSES.find(x => x.id === id).cells, ON = r('on'), OFF = r('off');
+    // drawn as a population profile down the stage-label column, so it never hides behind the tiles
+    const st = box.querySelector('.stage').getBoundingClientRect(), span = 0, cx0 = (st.left + st.right) / 2 - R.left, max = C('motion'), wmax = Math.min(st.width, 64);
+    const rows = [[r('photo'), C('photo')], [r('lamina'), C('lamina')], [{t: Math.min(ON.t, OFF.t), b: Math.max(ON.b, OFF.b)}, C('on') + C('off')], [r('motion'), C('motion')]]
+      .map(([q, n]) => ({t: q.t + 6, b: q.b - 6, h: wmax * n / max / 2}));
+    let L = `M${cx0 - rows[0].h},${rows[0].t}`, Rt = '';
+    rows.forEach((q, i) => {
+      L += ` L${cx0 - q.h},${q.b}`; const nx = rows[i + 1];
+      if (nx) { const m = (q.b + nx.t) / 2; L += ` C${cx0 - q.h},${m} ${cx0 - nx.h},${m} ${cx0 - nx.h},${nx.t}`; }
+    });
+    for (let i = rows.length - 1; i >= 0; i--) {
+      const q = rows[i]; Rt += ` L${cx0 + q.h},${q.b} L${cx0 + q.h},${q.t}`; const pv = rows[i - 1];
+      if (pv) { const m = (q.t + pv.b) / 2; Rt += ` C${cx0 + q.h},${m} ${cx0 + pv.h},${m} ${cx0 + pv.h},${pv.b}`; }
+    }
+    const glass = `<defs><linearGradient id="hg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d9d6ce" stop-opacity=".35"/><stop offset=".35" stop-color="#4fb3a4" stop-opacity=".4"/><stop offset=".65" stop-color="#e0a35a" stop-opacity=".35"/><stop offset="1" stop-color="#e2576b" stop-opacity=".4"/></linearGradient></defs><path class="glass" d="${L}${Rt} Z"/>`;
+    svg.innerHTML = glass + LENS_EDGES.map(([a, b, kind]) => {
       const A = r(a), B = r(b), on = lit.has(a) && lit.has(b);
       let d, x1, y1, x2, y2;
       if (!kind) {
@@ -354,7 +372,7 @@
   function renderLenses() {
     const lit = new Set([lens, ...LENS_UP[lens]]);
     $('lenses').innerHTML = LENS_STAGES.map((t, i) => `<span class="stage" style="grid-row:${i + 1}">${t}</span>`).join('') +
-      LENSES.map(L => `<button class="lens ${L.id === lens ? 'on' : lit.has(L.id) ? 'path' : ''}" data-l="${L.id}" style="${LENS_POS[L.id]}"><i class="bar" style="background:${L.col}"></i><b>${L.name}</b><span>${L.sub}</span></button>`).join('') +
+      LENSES.map(L => `<button class="lens ${L.id === lens ? 'on' : lit.has(L.id) ? 'path' : ''}" data-l="${L.id}" style="${LENS_POS[L.id]}"><i class="bar" style="background:${L.col}"></i><b>${L.name}</b><span>${L.sub}</span><em class="n">${L.cells.toLocaleString()} cells</em></button>`).join('') +
       '<svg class="wires" aria-hidden="true"></svg>';
     $('lenses').querySelectorAll('.lens').forEach(b => b.onclick = () => { lens = b.dataset.l; renderLenses(); });
     drawWires(lit);
