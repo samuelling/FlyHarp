@@ -6,7 +6,7 @@
   const GROUP_SUB = ['R1–R8', 'L, Lawf, Am, C2/C3, T1', 'Mi, CT1 (medulla)', 'Tm, TmY, T2, T3', 'T4, T5, CT1 (lobula)'];
   const ENGINES = {pad: 'bowed pad', modal: 'marimba', pluck: 'harp', fm: 'FM bell', glass: 'glass', click: 'pitched click'};
   const DEFAULT_ENGINE = ['pad', 'modal', 'pluck', 'fm', 'click'];
-  const area = [0, 1, 2, 3, 4].map(g => ({engine: DEFAULT_ENGINE[g], level: 0.8, mute: false, solo: false}));
+  const area = [0, 1, 2, 3, 4].map(g => ({engine: DEFAULT_ENGINE[g], level: 0.8, mute: false, solo: false, pol: 'both'}));
   let selected = new Set(), tauRank = {};
   const GROUP_COL = ['#8f7fd6', '#4fb3a4', '#e0c35a', '#e88a4f', '#e2576b'];
   const DECAY = [0.9988, 0.9982, 0.9975, 0.9966, 0.9955], DUR = [1.2, 0.8, 0.5, 0.35, 0.25];
@@ -21,7 +21,7 @@
   const groupOf = t => /^R\d/.test(t) ? 0 : /^(L\d|Lawf|Am|C2|C3|T1)$/.test(t) || /^Lawf/.test(t) ? 1 : /^(Mi|CT1\(M10\))/.test(t) ? 2 :
     /^(T4|T5|CT1\(Lo1\))/.test(t) ? 4 : 3;
 
-  const P = {kind: 'grating', contrast: 0.8, size: 8, speed: 1, direction: 0, polarity: -1};
+  const P = {kind: 'webcam', contrast: 0.8, size: 8, speed: 1, direction: 0, polarity: -1};
   let types = [], X = [], Y = [], nodeOf = [], region = [], NR = 7, scale = [];
   let strings = [], det = null;
   let simT = 0, acc = 0, lastNow = performance.now(), busy = false, ready = false, playing = false;
@@ -40,8 +40,14 @@
   $('kind').onchange = async () => {
     P.kind = $('kind').value;
     $('eyehint').textContent = P.kind === 'paint' ? '· drag on the eye to draw (polarity sets dark/bright)' : '';
-    if (P.kind === 'webcam') { const ok = await Stimuli.startCamera(); if (!ok) { status('camera unavailable here; try another stimulus'); } }
+    if (P.kind === 'webcam') await useCamera();
   };
+  // the webcam is the default eye; if the camera is refused or missing, fall back to a drifting grating
+  async function useCamera() {
+    const ok = await Stimuli.startCamera();
+    if (!ok) { P.kind = 'grating'; $('kind').value = 'grating'; status('camera unavailable (permission or browser), showing a drifting grating instead'); }
+    return ok;
+  }
   document.querySelectorAll('.seg button').forEach(b => b.onclick = () => {
     document.querySelectorAll('.seg button').forEach(x => x.classList.toggle('on', x === b)); P.polarity = +b.dataset.pol;
   });
@@ -61,6 +67,7 @@
       const ts = types.filter(t => groupOf(t) === g);
       return `<div class="area ${a.mute || (anySolo && !a.solo) ? 'muted' : ''}" data-g="${g}">
         <div class="head"><span class="dot" style="background:${GROUP_COL[g]}"></span><span class="nm">${GROUP_NAMES[g]}</span>
+          <span class="pol">${[['dep', '+', 'depolarisation only'], ['both', '±', 'depolarisation and hyperpolarisation'], ['hyp', '−', 'hyperpolarisation only']].map(([k, l, ttl]) => `<button class="sm pl ${a.pol === k ? 'on' : ''}" data-pol="${k}" title="${ttl}">${l}</button>`).join('')}</span>
           <button class="sm solo ${a.solo ? 'on' : ''}" title="solo">S</button><button class="sm mute ${a.mute ? 'on' : ''}" title="mute">M</button></div>
         <div class="row2"><select class="eng">${Object.entries(ENGINES).map(([k, n]) => `<option value="${k}" ${k === a.engine ? 'selected' : ''}>${n}</option>`).join('')}</select>
           <input type="range" class="lvl" min="0" max="1" step="0.05" value="${a.level}" title="level"></div>
@@ -71,6 +78,7 @@
       el.querySelector('.solo').onclick = () => { a.solo = !a.solo; renderHier(); };
       el.querySelector('.mute').onclick = () => { a.mute = !a.mute; renderHier(); };
       el.querySelector('.eng').onchange = e => { a.engine = e.target.value; buildStrings(); };
+      el.querySelectorAll('.pl').forEach(b => b.onclick = () => { a.pol = b.dataset.pol; buildStrings(); renderHier(); });
       el.querySelector('.lvl').oninput = e => { a.level = +e.target.value; };
       el.querySelectorAll('.chip').forEach(c => c.onclick = () => toggleType(c.dataset.t));
     });
@@ -99,6 +107,7 @@
   $('go').onclick = async () => {
     if (!playing) {
       await Sound.start(); Sound.setVolume(+$('vol').value); Sound.setReverb(+$('rev').value);
+      if (P.kind === 'webcam') await useCamera();
       playing = true; $('go').textContent = '❚❚ Pause sound'; $('go').classList.add('playing');
       const outs = await Sound.initMIDI();
       $('midiOut').innerHTML = '<option value="">none</option>' + outs.map(o => `<option value="${o.id}">${o.name}</option>`).join('');
@@ -116,11 +125,27 @@
     strings = [];
     byG.forEach((list, g) => list.forEach((n, i) => {
       const deg = i % sc.length, oct = Math.floor(i / sc.length) % 2;
-      strings.push(Object.assign({name: n, t: types.indexOf(n), g, midi: root + Math.round(12 * g * spread) + 12 * oct + sc[deg]}, timbre(n, g, i)));
+      const midi = root + Math.round(12 * g * spread) + 12 * oct + sc[deg], pol = area[g].pol;
+      if (pol !== 'hyp') strings.push(Object.assign({name: n, t: types.indexOf(n), g, pol: 1, midi}, timbre(n, g, i)));
+      if (pol !== 'dep') {
+        // hyperpolarisation voice: an octave down, darker, with a reversed (swelling) envelope
+        const tb = timbre(n, g, i), q = tb.p;
+        q.rev = 0.12 + 0.35 * (tauRank[n] ?? 0.5);
+        if ('bright' in q) q.bright *= 0.6;
+        if ('index' in q) q.index *= 0.5;
+        if ('cutoff' in q) q.cutoff *= 0.6;
+        // let the instrument ring through the swell
+        if (tb.engine === 'click' || tb.engine === 'fm') q.decay += q.rev;
+        if (tb.engine === 'fm') q.idecay += q.rev;
+        if (tb.engine === 'pluck') q.decay = Math.max(q.decay, 0.998);
+        if (q.decays) q.decays = q.decays.map(d => d + q.rev);
+        strings.push(Object.assign({name: n, t: types.indexOf(n), g, pol: -1, midi: midi - 12}, tb));
+      }
     }));
     const nR = $('spatial').checked ? NR : 1;
     det = {nR, base: new Float32Array(strings.length * nR), armed: new Uint8Array(strings.length * nR).fill(1), last: new Float32Array(strings.length * nR).fill(-9)};
-    status(`${types.length} cell types · ${strings.length} strings${nR > 1 ? ' × 7 eye regions' : ''}`);
+    const nd = strings.filter(x => x.pol > 0).length, nh = strings.length - nd;
+    status(`${names.length} cell types strung · ${nd} depolarisation + ${nh} hyperpolarisation strings${nR > 1 ? ' × 7 eye regions' : ''}`);
   }
 
   // per-step detection: a string plucks when its activity (in units of that type's response range)
@@ -128,10 +153,10 @@
   function detect(a, tSim, events) {
     const th = +$('thresh').value, nR = det.nR;
     for (let s = 0; s < strings.length; s++) {
-      const st = strings[s], t = st.t, sc = scale[t];
+      const st = strings[s], t = st.t, nT = types.length, off = st.pol > 0 ? 0 : nT * NR, sc = st.pol > 0 ? scale[t] : scale[nT + t];
       for (let r = 0; r < nR; r++) {
         let x;
-        if (nR === 1) { x = 0; for (let q = 0; q < NR; q++) x += a[t * NR + q]; x /= NR; } else x = a[t * NR + r];
+        if (nR === 1) { x = 0; for (let q = 0; q < NR; q++) x += a[off + t * NR + q]; x /= NR; } else x = a[off + t * NR + r];
         x /= sc;
         const k = s * nR + r;
         det.base[k] += (x - det.base[k]) * DT / 1.5;
@@ -148,14 +173,14 @@
   function fire(ev) {
     const st = strings[ev.s];
     if (!st) return;
-    rings.push({t: st.t, r: det.nR > 1 ? ev.r : -1, born: performance.now(), g: st.g, quiet: !audible(st.g)});
+    rings.push({t: st.t, r: det.nR > 1 ? ev.r : -1, born: performance.now(), g: st.g, quiet: !audible(st.g), hyp: st.pol < 0});
     if (!audible(st.g) || area[st.g].level <= 0) return;
     const p = Object.assign({}, st.p);
     if (st.engine === 'pluck') p.bright = Math.min(0.95, p.bright + 0.25 * ev.vel + 0.08 * ev.lift);
     const n = {midi: st.midi, vel: ev.vel * area[st.g].level, pan: ev.pan, dur: DUR[st.g], engine: st.engine, p,
-      channel: $('midiCh').value === 'layer' ? st.g : 0};
+      channel: $('midiCh').value === 'layer' ? st.g + (st.pol < 0 ? 5 : 0) : (st.pol < 0 ? 1 : 0)};
     if (playing) Sound.play(n, {internal: $('internal').checked, midi: true});
-    roll.push({midi: st.midi, g: st.g, vel: ev.vel, x: rollW}); stats.notes++; stats.byGroup[st.g]++;
+    roll.push({midi: st.midi, g: st.g, vel: ev.vel, x: rollW, hyp: st.pol < 0}); stats.notes++; stats.byGroup[st.g]++; stats[st.pol < 0 ? 'hyp' : 'dep']++;
   }
 
   // ---------------------------------------------------------------- worker
@@ -167,6 +192,7 @@
       const order = types.map((t, i) => [m.tau[i], t]).sort((a, b) => a[0] - b[0]);
       order.forEach(([, t], r) => tauRank[t] = r / (order.length - 1));
       Stimuli.init(X, Y); layoutCascade(); ready = true; applyPreset('cascade');
+      if (P.kind === 'webcam') useCamera();
       status(`${m.N.toLocaleString()} neurons, ${(m.nE / 1e6).toFixed(2)}M synapses running · press Start for sound`);
     } else if (m.cmd === 'frames') {
       busy = false; lastDV = m.dV;
@@ -203,7 +229,7 @@
     requestAnimationFrame(tick);
   }
   let frameN = 0;
-  const stats = {notes: 0, byGroup: [0, 0, 0, 0, 0]};
+  const stats = {notes: 0, byGroup: [0, 0, 0, 0, 0], dep: 0, hyp: 0};
   window.__flyharp = {stats, P, area, get strings() { return strings; }, get simT() { return simT; }, toggleType: t => toggleType(t)};
 
   // ---------------------------------------------------------------- drawing: eye
@@ -239,12 +265,14 @@
       const n = roll[i]; n.x -= dt * 90;
       if (n.x < -20) { roll.splice(i, 1); continue; }
       const y = h - (n.midi - lo) / (hi - lo) * h;
-      rx.globalAlpha = 0.35 + 0.65 * n.vel; rx.fillStyle = GROUP_COL[n.g];
-      rx.fillRect(n.x - 8, y - 3, 6 + 18 * DUR[n.g], 6);
+      rx.globalAlpha = 0.35 + 0.65 * n.vel; rx.fillStyle = GROUP_COL[n.g]; rx.strokeStyle = GROUP_COL[n.g];
+      if (n.hyp) { rx.lineWidth = 1.5; rx.strokeRect(n.x - 8, y - 3, 6 + 18 * DUR[n.g], 6); } else rx.fillRect(n.x - 8, y - 3, 6 + 18 * DUR[n.g], 6);
     }
     rx.globalAlpha = 1;
     rx.font = '11px sans-serif';
     GROUP_NAMES.forEach((g, i) => { rx.fillStyle = GROUP_COL[i]; rx.fillRect(10, 10 + i * 16, 10, 10); rx.fillStyle = '#8d8a83'; rx.fillText(g, 26, 19 + i * 16); });
+    rx.strokeStyle = '#8d8a83'; rx.lineWidth = 1; rx.fillRect(10, 96, 10, 6); rx.strokeRect(10.5, 110.5, 9, 6);
+    rx.fillText('depolarisation', 26, 103); rx.fillText('hyperpolarisation (octave down, swells in)', 26, 117);
   }
 
   // ---------------------------------------------------------------- drawing: cascade of cell-type maps
@@ -289,7 +317,8 @@
       cx2.strokeStyle = GROUP_COL[rg.g]; cx2.globalAlpha = rg.quiet ? a * 0.3 : a; cx2.lineWidth = 2;
       let px = tl.x0 + 38, py = tl.y0 + 34, rad = 32;
       if (rg.r > 0) { const ang = -Math.PI + (rg.r - 0.5) * Math.PI / 3; px += Math.cos(ang) * 20; py += Math.sin(ang) * 20; rad = 11; } else if (rg.r === 0) rad = 11;
-      cx2.beginPath(); cx2.arc(px, py, rad, 0, 2 * Math.PI); cx2.stroke();
+      cx2.setLineDash(rg.hyp ? [3, 3] : []); if (rg.hyp) cx2.strokeStyle = '#5aa6e8';
+      cx2.beginPath(); cx2.arc(px, py, rad, 0, 2 * Math.PI); cx2.stroke(); cx2.setLineDash([]);
     }
     cx2.globalAlpha = 1;
   }

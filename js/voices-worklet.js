@@ -57,16 +57,21 @@ class Voices extends AudioWorkletProcessor {
             y = v.lp * env * v.vel * 0.18; break;
           }
           case 'click': {
-            const x = t < 0.004 ? (Math.random() * 2 - 1) : 0;
+            // struck: a 4 ms noise burst into the resonator; hyperpolarisation: breathy filtered noise that swells in
+            const x = p.rev ? (Math.random() * 2 - 1) * 0.12 : t < 0.004 ? (Math.random() * 2 - 1) : 0;
             const yy = x + v.b1 * v.y1 + v.b2 * v.y2; v.y2 = v.y1; v.y1 = yy;
-            y = yy * v.vel * (p.gain ?? 0.08) * (6 / (p.q ?? 30)) * Math.exp(-t / (p.decay ?? 0.25)); break;
+            y = yy * v.vel * (p.gain ?? 0.08) * (3 / (p.q ?? 30)) * Math.exp(-t / (p.decay ?? 0.25)); break;
           }
+        }
+        if (p.rev) { // reversed envelope for hyperpolarisation voices: swell in, then a quick release
+          const A = p.rev, x = t / A;
+          y *= t < A ? x * x * (p.revGain ?? 2.5) : (p.revGain ?? 2.5) * Math.exp(-(t - A) / 0.09);
         }
         L[k] += y * v.gl; if (R !== L) R[k] += y * v.gr;
         e2 += y * y; v.t += dt;
       }
       v.life -= n;
-      if (v.life > 0 && (v.t < 0.05 || e2 / n > 1e-10)) keep.push(v);
+      if (v.life > 0 && (v.t < 0.05 || (p.rev && v.t < p.rev) || e2 / n > 1e-10)) keep.push(v);
     }
     this.v = keep;
     for (let k = 0; k < n; k++) { L[k] = Math.tanh(L[k] * 0.7); if (R !== L) R[k] = Math.tanh(R[k] * 0.7); }

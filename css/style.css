@@ -51,3 +51,4 @@ canvas{background:#0a0b0d;border:1px solid var(--line);border-radius:10px;displa
 .chips{display:flex;flex-wrap:wrap;gap:3px}
 .chip{font-size:10.5px;padding:1px 6px;border-radius:9px;border:1px solid var(--line);color:var(--muted);background:transparent;cursor:pointer;font-family:inherit}
 .chip.on{color:#111}
+.area .pol{display:inline-flex;gap:2px;margin-right:4px}.area .sm.pl{padding:2px 6px}

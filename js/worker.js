@@ -36,31 +36,33 @@ self.onmessage = async (ev) => {
   }
 };
 
-// mean depolarisation relative to the grey operating point, per cell type x eye region
+// per cell type x eye region: mean depolarisation (first nT*NR entries) and mean hyperpolarisation
+// (second nT*NR entries) relative to the grey operating point
 function regionActivity() {
-  const V = eng.V, V0 = eng.V0, nT = eng.nT, a = new Float32Array(nT * NR);
+  const V = eng.V, V0 = eng.V0, nT = eng.nT, M = nT * NR, a = new Float32Array(2 * M);
   for (let t = 0; t < nT; t++) {
     const nodes = typeNodes[t], base = t * NR;
     for (let n = 0; n < nodes.length; n++) {
-      const i = nodes[n], d = V[i] - V0[i];
-      if (d > 0) a[base + region[eng.nodeCol[i]]] += d;
+      const i = nodes[n], d = V[i] - V0[i], r = region[eng.nodeCol[i]];
+      if (d > 0) a[base + r] += d; else a[M + base + r] -= d;
     }
-    for (let r = 0; r < NR; r++) a[base + r] /= Math.max(regCount[base + r], 1);
+    for (let r = 0; r < NR; r++) { const c = Math.max(regCount[base + r], 1); a[base + r] /= c; a[M + base + r] /= c; }
   }
   return a;
 }
 
-// response scale per cell type: peak regional activity to a full-field drifting grating and to flashes
+// response scale per cell type and sign: peak regional activity to full-field gratings and ON/OFF flashes
 function calibrate() {
   eng.settle(0.5, 2);
-  const nC = eng.nC, nT = eng.nT, sc = new Float32Array(nT), lum = new Float32Array(nC);
-  const run = (fn, n) => { for (let s = 0; s < n; s++) { fn(s, lum); eng.step(lum); const a = regionActivity(); for (let t = 0; t < nT; t++) for (let r = 0; r < NR; r++) sc[t] = Math.max(sc[t], a[t * NR + r]); } };
+  const nC = eng.nC, nT = eng.nT, M = nT * NR, sc = new Float32Array(2 * nT), lum = new Float32Array(nC);
+  const run = (fn, n) => { for (let s = 0; s < n; s++) { fn(s, lum); eng.step(lum); const a = regionActivity();
+    for (let t = 0; t < nT; t++) for (let r = 0; r < NR; r++) { sc[t] = Math.max(sc[t], a[t * NR + r]); sc[nT + t] = Math.max(sc[nT + t], a[M + t * NR + r]); } } };
   for (const th of [0, Math.PI / 2]) {
     eng.settle(0.5, 1);
     run((s, L) => { for (let k = 0; k < nC; k++) L[k] = 0.5 * (1 + Math.sin(2 * Math.PI / 8 * (xs[k] * Math.cos(th) + ys[k] * Math.sin(th)) - 2 * Math.PI * 2 * s * eng.dt)); }, 60);
   }
   eng.settle(0.5, 1);
   run((s, L) => L.fill(s < 15 ? 1 : s < 30 ? 0.5 : s < 45 ? 0 : 0.5), 60);
-  for (let t = 0; t < nT; t++) sc[t] = Math.max(sc[t], 1e-4);
+  for (let t = 0; t < 2 * nT; t++) sc[t] = Math.max(sc[t], 1e-4);
   return sc;
 }
