@@ -20,7 +20,7 @@ const EXC = new THREE.Color('#ffae42'), INH = new THREE.Color('#6a7dff');
 
 let api = null, renderer, scene, camera, controls, points, lines, pos, nodeType, nodeArea, nodeCol, sc, N;
 let colAttr, sizeAttr, eSrc = null, eTgt = null, eW = null, eCol = null, lastDV = null, visible = false, started = false;
-let showSticks = true, labels = [];
+let showSticks = true, labels = [], lastDraw = 0;
 const v = new Float32Array(0);
 let act = v;
 
@@ -166,6 +166,8 @@ function bindHover() {
 function frame() {
   if (!visible) { started = false; return; }
   requestAnimationFrame(frame);
+  // cap at ~30 fps so drawing never competes much with the simulation for the machine
+  const now = performance.now(); if (now - lastDraw < 32) return; lastDraw = now;
   const dV = api.dv();
   if (dV && dV !== lastDV) { lastDV = dV; paint(dV); }
   controls.update(); renderer.render(scene, camera); placeLabels();
