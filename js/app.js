@@ -2,7 +2,12 @@
 (() => {
   const $ = id => document.getElementById(id);
   const DT = 0.02;
-  const GROUP_NAMES = ['retina', 'lamina', 'medulla', 'transmedulla / lobula', 'motion (T4/T5)'];
+  const GROUP_NAMES = ['retina', 'lamina', 'medulla', 'medulla → lobula', 'lobula plate (T4/T5)'];
+  const GROUP_SUB = ['R1–R8', 'L, Lawf, Am, C2/C3, T1', 'Mi, CT1 (medulla)', 'Tm, TmY, T2, T3', 'T4, T5, CT1 (lobula)'];
+  const ENGINES = {pad: 'bowed pad', modal: 'marimba', pluck: 'harp', fm: 'FM bell', glass: 'glass', click: 'pitched click'};
+  const DEFAULT_ENGINE = ['pad', 'modal', 'pluck', 'fm', 'click'];
+  const area = [0, 1, 2, 3, 4].map(g => ({engine: DEFAULT_ENGINE[g], level: 0.8, mute: false, solo: false}));
+  let selected = new Set(), tauRank = {};
   const GROUP_COL = ['#8f7fd6', '#4fb3a4', '#e0c35a', '#e88a4f', '#e2576b'];
   const DECAY = [0.9988, 0.9982, 0.9975, 0.9966, 0.9955], DUR = [1.2, 0.8, 0.5, 0.35, 0.25];
   const SCALES = {majpent: [0, 2, 4, 7, 9], minpent: [0, 3, 5, 7, 10], dorian: [0, 2, 3, 5, 7, 9, 10], lydian: [0, 2, 4, 6, 7, 9, 11],
@@ -41,7 +46,53 @@
     document.querySelectorAll('.seg button').forEach(x => x.classList.toggle('on', x === b)); P.polarity = +b.dataset.pol;
   });
   $('root').innerHTML = NOTE_NAMES.map((n, i) => `<option value="${i}" ${i === 2 ? 'selected' : ''}>${n}</option>`).join('');
-  ['preset', 'scale', 'root'].forEach(k => $(k).onchange = buildStrings);
+  ['scale', 'root'].forEach(k => $(k).onchange = buildStrings);
+  document.querySelectorAll('.presets button').forEach(b => b.onclick = () => applyPreset(b.dataset.pre));
+  function applyPreset(pre) {
+    selected = new Set(pre === 'all' ? types : pre === 'none' ? [] : PRESETS[pre].filter(t => types.includes(t)));
+    buildStrings(); renderHier();
+  }
+  function toggleType(t) { selected.has(t) ? selected.delete(t) : selected.add(t); buildStrings(); renderHier(); }
+
+  // hierarchy mixer: one panel per area, with solo / mute / timbre / level and a chip per cell type
+  function renderHier() {
+    const anySolo = area.some(a => a.solo);
+    $('hier').innerHTML = area.map((a, g) => {
+      const ts = types.filter(t => groupOf(t) === g);
+      return `<div class="area ${a.mute || (anySolo && !a.solo) ? 'muted' : ''}" data-g="${g}">
+        <div class="head"><span class="dot" style="background:${GROUP_COL[g]}"></span><span class="nm">${GROUP_NAMES[g]}</span>
+          <button class="sm solo ${a.solo ? 'on' : ''}" title="solo">S</button><button class="sm mute ${a.mute ? 'on' : ''}" title="mute">M</button></div>
+        <div class="row2"><select class="eng">${Object.entries(ENGINES).map(([k, n]) => `<option value="${k}" ${k === a.engine ? 'selected' : ''}>${n}</option>`).join('')}</select>
+          <input type="range" class="lvl" min="0" max="1" step="0.05" value="${a.level}" title="level"></div>
+        <div class="chips">${ts.map(t => `<button class="chip ${selected.has(t) ? 'on' : ''}" data-t="${t}" style="${selected.has(t) ? `background:${GROUP_COL[g]};border-color:${GROUP_COL[g]}` : ''}" title="${t} · τ = ${(1000 * tauOf(t)).toFixed(0)} ms">${t}</button>`).join('')}</div></div>`;
+    }).join('');
+    $('hier').querySelectorAll('.area').forEach(el => {
+      const g = +el.dataset.g, a = area[g];
+      el.querySelector('.solo').onclick = () => { a.solo = !a.solo; renderHier(); };
+      el.querySelector('.mute').onclick = () => { a.mute = !a.mute; renderHier(); };
+      el.querySelector('.eng').onchange = e => { a.engine = e.target.value; buildStrings(); };
+      el.querySelector('.lvl').oninput = e => { a.level = +e.target.value; };
+      el.querySelectorAll('.chip').forEach(c => c.onclick = () => toggleType(c.dataset.t));
+    });
+  }
+  const tauOf = t => tauList[types.indexOf(t)] || 0.05;
+  let tauList = [];
+  const audible = g => !area[g].mute && (!area.some(a => a.solo) || area[g].solo);
+
+  // per-cell-type timbre: the area sets the instrument family; the cell's membrane time constant
+  // sets the envelope (fast cells percussive, slow cells sustained); a hash of its name varies the colour
+  function hash(str, k) { let h = 2166136261 ^ k; for (const ch of str) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return ((h >>> 0) % 1000) / 1000; }
+  function timbre(name, g, idx) {
+    const eng = area[g].engine, tr = tauRank[name] ?? 0.5, h1 = hash(name, 1), h2 = hash(name, 2);
+    switch (eng) {
+      case 'pluck': return {engine: eng, p: {decay: 0.990 + 0.0092 * tr, bright: 0.3 + 0.55 * h1}};
+      case 'modal': return {engine: eng, p: {ratios: [1, 3.9 + 0.5 * h1, 9.2 + 2.5 * h2], decays: [0.2 + 1.1 * tr, 0.07 + 0.1 * tr, 0.03], amps: [1, 0.35, 0.12], attack: 0.002}};
+      case 'glass': return {engine: eng, p: {ratios: [1, 1.0035, 2.32 + 0.12 * h1, 4.25 + 0.25 * h2], decays: [1.2 + 3 * tr, 1.2 + 3 * tr, 0.7, 0.35], amps: [0.6, 0.45, 0.22, 0.1], attack: 0.004}};
+      case 'fm': return {engine: eng, p: {ratio: [1, 1.4142, 2, 2.7183, 3.5, 0.5, 1.5, 4][idx % 8], index: 1.2 + 3 * h1, idecay: 0.04 + 0.4 * tr, decay: 0.25 + 1.6 * tr}};
+      case 'pad': return {engine: eng, p: {detune: 0.002 + 0.006 * h1, cutoff: 1.5 + 4 * h2, attack: 0.02 + 0.35 * tr, release: 0.25 + 1.4 * tr}};
+      case 'click': return {engine: eng, p: {q: 12 + 70 * h1, decay: 0.04 + 0.35 * tr, gain: 0.07 + 0.05 * h2}};
+    }
+  }
   $('spatial').onchange = buildStrings;
   $('reset').onclick = () => worker.postMessage({cmd: 'reset'});
   $('midiOut').onchange = () => Sound.setOutput($('midiOut').value);
@@ -58,14 +109,14 @@
   // ---------------------------------------------------------------- strings and pitches
   function buildStrings() {
     if (!ready) return;
-    const pre = $('preset').value, names = pre === 'all' ? types.slice() : PRESETS[pre].filter(t => types.includes(t));
+    const names = types.filter(t => selected.has(t));
     const sc = SCALES[$('scale').value], root = 36 + +$('root').value, spread = +$('spread').value;
     const byG = [[], [], [], [], []];
     names.forEach(n => byG[groupOf(n)].push(n));
     strings = [];
     byG.forEach((list, g) => list.forEach((n, i) => {
       const deg = i % sc.length, oct = Math.floor(i / sc.length) % 2;
-      strings.push({name: n, t: types.indexOf(n), g, midi: root + Math.round(12 * g * spread) + 12 * oct + sc[deg]});
+      strings.push(Object.assign({name: n, t: types.indexOf(n), g, midi: root + Math.round(12 * g * spread) + 12 * oct + sc[deg]}, timbre(n, g, i)));
     }));
     const nR = $('spatial').checked ? NR : 1;
     det = {nR, base: new Float32Array(strings.length * nR), armed: new Uint8Array(strings.length * nR).fill(1), last: new Float32Array(strings.length * nR).fill(-9)};
@@ -96,11 +147,15 @@
 
   function fire(ev) {
     const st = strings[ev.s];
-    const n = {midi: st.midi, vel: ev.vel, pan: ev.pan, dur: DUR[st.g], decay: DECAY[st.g], bright: 0.35 + 0.5 * ev.vel + 0.1 * ev.lift,
+    if (!st) return;
+    rings.push({t: st.t, r: det.nR > 1 ? ev.r : -1, born: performance.now(), g: st.g, quiet: !audible(st.g)});
+    if (!audible(st.g) || area[st.g].level <= 0) return;
+    const p = Object.assign({}, st.p);
+    if (st.engine === 'pluck') p.bright = Math.min(0.95, p.bright + 0.25 * ev.vel + 0.08 * ev.lift);
+    const n = {midi: st.midi, vel: ev.vel * area[st.g].level, pan: ev.pan, dur: DUR[st.g], engine: st.engine, p,
       channel: $('midiCh').value === 'layer' ? st.g : 0};
     if (playing) Sound.play(n, {internal: $('internal').checked, midi: true});
     roll.push({midi: st.midi, g: st.g, vel: ev.vel, x: rollW}); stats.notes++; stats.byGroup[st.g]++;
-    rings.push({t: st.t, r: det.nR > 1 ? ev.r : -1, born: performance.now(), g: st.g});
   }
 
   // ---------------------------------------------------------------- worker
@@ -108,7 +163,10 @@
     const m = e.data;
     if (m.cmd === 'ready') {
       types = m.types; X = m.x; Y = m.y; nodeOf = m.nodeOf; region = m.region; NR = m.NR; scale = m.scale;
-      Stimuli.init(X, Y); layoutCascade(); ready = true; buildStrings();
+      tauList = m.tau;
+      const order = types.map((t, i) => [m.tau[i], t]).sort((a, b) => a[0] - b[0]);
+      order.forEach(([, t], r) => tauRank[t] = r / (order.length - 1));
+      Stimuli.init(X, Y); layoutCascade(); ready = true; applyPreset('cascade');
       status(`${m.N.toLocaleString()} neurons, ${(m.nE / 1e6).toFixed(2)}M synapses running · press Start for sound`);
     } else if (m.cmd === 'frames') {
       busy = false; lastDV = m.dV;
@@ -146,7 +204,7 @@
   }
   let frameN = 0;
   const stats = {notes: 0, byGroup: [0, 0, 0, 0, 0]};
-  window.__flyharp = {stats, P, get strings() { return strings; }, get simT() { return simT; }};
+  window.__flyharp = {stats, P, area, get strings() { return strings; }, get simT() { return simT; }, toggleType: t => toggleType(t)};
 
   // ---------------------------------------------------------------- drawing: eye
   const eye = $('eye'), ex = eye.getContext('2d');
@@ -217,19 +275,31 @@
     }
     cx2.putImageData(img, 0, 0);
     cx2.font = '10px sans-serif';
-    for (const tl of tiles) { cx2.fillStyle = GROUP_COL[tl.g]; cx2.fillText(tl.name, tl.x0, tl.y0 + 68); }
+    for (const tl of tiles) {
+      const on = selected.has(tl.name), quiet = !audible(tl.g);
+      cx2.globalAlpha = on ? (quiet ? 0.45 : 1) : 0.45; cx2.fillStyle = GROUP_COL[tl.g]; cx2.fillText(tl.name, tl.x0, tl.y0 + 68);
+      if (on) { cx2.strokeStyle = GROUP_COL[tl.g]; cx2.lineWidth = 1; cx2.strokeRect(tl.x0 + 1.5, tl.y0 - 0.5, TW - 8, TH - 8); }
+    }
+    cx2.globalAlpha = 1;
     const now = performance.now();
     rings = rings.filter(r => now - r.born < 400);
     for (const rg of rings) {
       const tl = tiles.find(x => x.t === rg.t); if (!tl) continue;
       const a = 1 - (now - rg.born) / 400;
-      cx2.strokeStyle = GROUP_COL[rg.g]; cx2.globalAlpha = a; cx2.lineWidth = 2;
+      cx2.strokeStyle = GROUP_COL[rg.g]; cx2.globalAlpha = rg.quiet ? a * 0.3 : a; cx2.lineWidth = 2;
       let px = tl.x0 + 38, py = tl.y0 + 34, rad = 32;
       if (rg.r > 0) { const ang = -Math.PI + (rg.r - 0.5) * Math.PI / 3; px += Math.cos(ang) * 20; py += Math.sin(ang) * 20; rad = 11; } else if (rg.r === 0) rad = 11;
       cx2.beginPath(); cx2.arc(px, py, rad, 0, 2 * Math.PI); cx2.stroke();
     }
     cx2.globalAlpha = 1;
   }
+
+  casC.addEventListener('click', e => {
+    const r = casC.getBoundingClientRect(), x = (e.clientX - r.left) * casC.width / r.width, y = (e.clientY - r.top) * casC.height / r.height;
+    const tl = tiles.find(t => x >= t.x0 && x < t.x0 + TW - 6 && y >= t.y0 && y < t.y0 + TH - 2);
+    if (tl) toggleType(tl.name);
+  });
+  casC.style.cursor = 'pointer';
 
   requestAnimationFrame(tick);
 })();

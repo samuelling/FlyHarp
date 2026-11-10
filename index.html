@@ -42,14 +42,10 @@
       <button id="reset" class="small">reset network</button>
     </section>
     <section>
-      <h2>Strings</h2>
-      <label>strung to
-        <select id="preset">
-          <option value="cascade">cascade (24 types, retina → motion)</option>
-          <option value="motion">motion detectors (T4/T5 × 4 directions)</option>
-          <option value="early">retina + lamina</option>
-          <option value="all">all 65 cell types</option>
-        </select></label>
+      <h2>Hierarchy</h2>
+      <p class="hint">Each area is an instrument family; each cell type a variant of it, with an envelope set by that cell's membrane time constant. Click chips, or the maps in the cascade, to string or unstring a cell type.</p>
+      <div class="presets"><button data-pre="cascade">cascade</button><button data-pre="motion">motion</button><button data-pre="early">retina + lamina</button><button data-pre="all">all</button><button data-pre="none">none</button></div>
+      <div id="hier"></div>
       <label>threshold <input type="range" id="thresh" min="0.03" max="0.6" step="0.01" value="0.15"><output></output></label>
       <label class="row"><input type="checkbox" id="spatial" checked> one string per eye region (7)</label>
       <label>max notes / s <input type="range" id="rate" min="4" max="60" step="1" value="24"><output></output></label>
@@ -86,7 +82,7 @@
     </div>
     <figure>
       <canvas id="cascade" width="1180" height="430"></canvas>
-      <figcaption>the cascade: every cell type's 721-column map, depolarised (orange) or hyperpolarised (blue) relative to grey. Rings mark plucked strings.</figcaption>
+      <figcaption>the cascade: every cell type's 721-column map, depolarised (orange) or hyperpolarised (blue) relative to grey. Rings mark plucked strings; outlined maps are strung, click a map to string or unstring it.</figcaption>
     </figure>
     <details class="about">
       <summary>What am I hearing?</summary>
@@ -97,6 +93,7 @@
       <p>Each "string" is a cell type. When its depolarisation in a region of the eye rises past threshold, relative to
         that type's own response range, it plucks a note. Pitch follows depth in the visual system: retina lowest, lamina,
         medulla, transmedulla, then the T4/T5 motion detectors highest. Pan follows the region's position on the eye, and loudness the size of the response.
+        Each area of the visual system is its own instrument family, and each cell type a variant of it. A cell's envelope follows its fitted membrane time constant, so fast cells click and slow cells swell.
         Because the network has real integration time constants, a flash ripples through the layers over tens of milliseconds;
         slowing the tempo stretches that ripple into a melody.</p>
       <p class="hint">Code and model export: github.com/samuelling/FlyHarp. Model: flyvis (TuragaLab).</p>

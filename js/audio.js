@@ -1,4 +1,4 @@
-// Sound out: internal Karplus–Strong harp (AudioWorklet) + Web MIDI.
+// Sound out: internal multi-timbral voices (AudioWorklet) + Web MIDI.
 const Sound = (() => {
   let ctx = null, node = null, master = null, wet = null, dry = null, ready = false;
   let midi = null, out = null;
@@ -12,8 +12,8 @@ const Sound = (() => {
     const rev = ctx.createConvolver(); rev.buffer = impulse(3.2, 2.5);
     wet = ctx.createGain(); wet.gain.value = 0.35; rev.connect(wet); wet.connect(master);
     try {
-      await ctx.audioWorklet.addModule('js/harp-worklet.js');
-      node = new AudioWorkletNode(ctx, 'harp', {outputChannelCount: [2]});
+      await ctx.audioWorklet.addModule('js/voices-worklet.js');
+      node = new AudioWorkletNode(ctx, 'voices', {outputChannelCount: [2]});
       node.connect(dry); node.connect(rev);
       ready = true;
     } catch (e) {
@@ -31,10 +31,10 @@ const Sound = (() => {
 
   const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
 
-  // note: {midi, vel 0..1, pan -1..1, dur s, decay, bright, channel}
+  // note: {midi, vel 0..1, pan -1..1, dur s, engine, p (engine params), channel}
   function play(n, opts) {
     if (opts.internal && ready) {
-      if (!node.fallback) node.port.postMessage({freq: mtof(n.midi), vel: n.vel, pan: n.pan, decay: n.decay, bright: n.bright});
+      if (!node.fallback) node.port.postMessage({engine: n.engine, freq: mtof(n.midi), vel: n.vel, pan: n.pan, dur: n.dur, p: n.p});
       else oscVoice(n);
     }
     if (opts.midi && out) {

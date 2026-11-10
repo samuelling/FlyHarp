@@ -11,7 +11,8 @@ A synthesizer played by the *Drosophila* visual system. A stimulus (or your webc
 - **The strings.** Each string is a cell type, optionally split into 7 regions of the eye. It plucks when its depolarization relative to grey rises past a threshold, measured in units of that type's own response range. It re-arms once it falls back below.
 - **Pitch** follows depth in the visual system: retina lowest, then lamina, medulla, transmedulla and T4/T5 highest. Within a layer, strings climb the chosen scale. **Pan** follows the region's position on the eye, and **loudness** follows response size.
 - **Tempo** slows fly time relative to real time, so the cascade's real latencies become audible arpeggios.
-- **Sound:** a Karplus–Strong harp in an AudioWorklet with reverb, plus Web MIDI out (one channel per layer, or all on channel 1).
+- **Hierarchy mixer.** The five areas (retina, lamina, medulla, medulla → lobula, lobula plate) can each be soloed, muted, levelled and given an instrument. Cell types are strung or unstrung with chips, or by clicking their maps in the cascade.
+- **Timbre.** Each area is an instrument family: bowed pad, marimba, harp (Karplus–Strong), FM bell, glass, or pitched click. Each cell type is its own variant within that family. Its **envelope comes from the cell's fitted membrane time constant**, so fast cells are percussive and slow cells sustain, and a hash of its name sets partial ratios, FM ratio and brightness. Everything runs in one AudioWorklet (`js/voices-worklet.js`) with reverb, plus Web MIDI out (one channel per area, or all on channel 1).
 
 ## Files
 
@@ -21,9 +22,10 @@ js/engine.js         the network (shared by the worker and Node tests)
 js/worker.js         simulation + per-type, per-region activity + response calibration
 js/stimuli.js        stimuli and webcam on the hex eye
 js/audio.js          Web Audio harp + Web MIDI
-js/harp-worklet.js   Karplus–Strong voices
+js/voices-worklet.js multi-engine voices (pluck, modal, glass, FM, pad, click)
 js/app.js            UI, string detectors, drawing
 data/fly.json        exported model
 tools/export_model.py   export from flyvis (pip install flyvis; flyvis download-pretrained)
 tools/validate_engine.js  compare the JS engine with a PyTorch reference trace
+tools/smoke_test.py, tools/engine_levels.py  headless checks of the page and of each voice engine
 ```

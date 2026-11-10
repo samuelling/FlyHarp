@@ -24,7 +24,7 @@ self.onmessage = async (ev) => {
     scale = calibrate();
     eng.settle(0.5, 2);
     self.postMessage({cmd: 'ready', N: eng.N, nE: eng.nE, types: model.types, x: Array.from(xs), y: Array.from(ys),
-      nodeOf: eng.nodeOf.map(a => Array.from(a)), region: Array.from(region), NR, scale: Array.from(scale)});
+      nodeOf: eng.nodeOf.map(a => Array.from(a)), region: Array.from(region), NR, scale: Array.from(scale), tau: model.tau});
   } else if (msg.cmd === 'run') {
     const out = [];
     for (const lum of msg.frames) { eng.step(lum); out.push(regionActivity()); }
