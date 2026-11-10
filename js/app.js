@@ -219,15 +219,16 @@
     }
   }
 
-  // the wordmark plays along: each letter belongs to an area and hops when that area plucks; the wing strings ring
-  const letters = [...document.querySelectorAll('.word span')], wingStrings = [...document.querySelectorAll('#logo .strings')];
-  const lastHop = new Float64Array(letters.length);
+  // the mast plays along: the pink riso pass slips out of register when a note fires (and now and then on its own);
+  // the fly's harp wings ring, left for depolarisation, right for hyperpolarisation
+  const logo = document.querySelector('.logo'), wingStrings = [...document.querySelectorAll('#logo .strings')];
+  let lastJit = 0;
+  const reduced = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function jitter() { if (reduced) return; logo.classList.remove('jit'); void logo.offsetWidth; logo.classList.add('jit'); lastJit = performance.now(); }
+  logo.addEventListener('animationend', e => { if (e.target.classList.contains('mis')) logo.classList.remove('jit'); });
+  (function idle() { setTimeout(() => { if (!document.hidden && performance.now() - lastJit > 3000) jitter(); idle(); }, 3500 + Math.random() * 5500); })();
   function bounce(g, hyp) {
-    const now = performance.now();
-    letters.forEach((el, i) => {
-      if (+el.dataset.g !== g || now - lastHop[i] < 260) return;
-      lastHop[i] = now; el.classList.remove('hop'); void el.offsetWidth; el.classList.add('hop');
-    });
+    if (performance.now() - lastJit > 420 && Math.random() < 0.35) jitter();
     const w = wingStrings[hyp ? 1 : 0];
     if (w && !w.classList.contains('ring')) { w.classList.add('ring'); setTimeout(() => w.classList.remove('ring'), 230); }
   }
