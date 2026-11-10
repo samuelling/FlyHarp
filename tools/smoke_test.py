@@ -16,6 +16,12 @@ async def main(out):
             await pg.wait_for_function('document.getElementById("status").textContent.includes("neurons")', timeout=60000)
             print(await pg.text_content('#status'))
             await pg.click('#go'); await pg.wait_for_timeout(500)
+            print('feedback info', await pg.evaluate('JSON.stringify(window.__flyharp.fbInfo)'))
+            await pg.select_option('#kind', 'flash')
+            mx = []
+            for _ in range(20):
+                await pg.wait_for_timeout(250); mx.append(await pg.evaluate('Array.from(window.__flyharp.fbR)'))
+            import numpy as np; mx = np.array(mx); print('feedback per region over 5 s of flashes: min', mx.min().round(2), 'max', mx.max().round(2), 'mean |f|', np.abs(mx).mean().round(2))
             for kind in ['flash', 'grating', 'loom', 'edge', 'dots']:
                 await pg.select_option('#kind', kind)
                 before = await pg.evaluate('JSON.stringify(window.__flyharp.stats)')

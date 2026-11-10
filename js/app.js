@@ -8,6 +8,8 @@
   const DEFAULT_ENGINE = ['pad', 'modal', 'pluck', 'fm', 'click'];
   const area = [0, 1, 2, 3, 4].map(g => ({engine: DEFAULT_ENGINE[g], level: 0.8, mute: false, solo: false, pol: 'both'}));
   let selected = new Set(), tauRank = {};
+  const fbR = new Float32Array(7);   // smoothed feedback per eye region, in units of its calibrated range (signed)
+  let fbInfo = null;
   const GROUP_COL = ['#8f7fd6', '#4fb3a4', '#e0c35a', '#e88a4f', '#e2576b'];
   const DECAY = [0.9988, 0.9982, 0.9975, 0.9966, 0.9955], DUR = [1.2, 0.8, 0.5, 0.35, 0.25];
   const SCALES = {majpent: [0, 2, 4, 7, 9], minpent: [0, 3, 5, 7, 10], dorian: [0, 2, 3, 5, 7, 9, 10], lydian: [0, 2, 4, 6, 7, 9, 11],
@@ -31,6 +33,7 @@
   // ---------------------------------------------------------------- controls
   for (const id of ['contrast', 'size', 'speed', 'direction']) bindRange(id, v => P[id] = v);
   bindRange('tempo', () => {}); bindRange('thresh', () => {}); bindRange('rate', () => {}); bindRange('spread', buildStrings);
+  bindRange('fbDepth', () => {});
   bindRange('vol', v => Sound.setVolume(v)); bindRange('rev', v => Sound.setReverb(v));
   function bindRange(id, fn) {
     const el = $(id), o = el.parentElement.querySelector('output');
@@ -180,7 +183,8 @@
   // per-step detection: a string plucks when its activity (in units of that type's response range)
   // rises past threshold above a slow running baseline; it re-arms once it falls back.
   function detect(a, tSim, events) {
-    const th = +$('thresh').value, nR = det.nR;
+    const th = +$('thresh').value, nR = det.nR, off = 2 * types.length * NR;
+    for (let r = 0; r < NR; r++) fbR[r] += (a[off + r] - fbR[r]) * DT / 0.08;
     for (let s = 0; s < strings.length; s++) {
       const st = strings[s], t = st.t, nT = types.length, off = st.pol > 0 ? 0 : nT * NR, sc = st.pol > 0 ? scale[t] : scale[nT + t];
       for (let r = 0; r < nR; r++) {
@@ -193,9 +197,25 @@
         if (det.armed[k] && d > th && tSim - det.last[k] > 0.06) {
           det.armed[k] = 0; det.last[k] = tSim;
           const ang = r === 0 ? null : -Math.PI + (r - 0.5) * Math.PI / 3;
-          events.push({s, r, vel: Math.min(1, 0.25 + d), pan: ang === null ? 0 : 0.8 * Math.cos(ang), lift: ang === null ? 0 : Math.sin(ang)});
+          const fbv = nR > 1 ? fbR[r] : fbR.reduce((x, y) => x + y, 0) / NR;
+          events.push({s, r, vel: Math.min(1, 0.25 + d), pan: ang === null ? 0 : 0.8 * Math.cos(ang), lift: ang === null ? 0 : Math.sin(ang), fb: fbv});
         } else if (!det.armed[k] && d < th * 0.4) det.armed[k] = 1;
       }
+    }
+  }
+
+  // the medulla's hand on the lamina's strings: f < 0 (net inhibitory feedback) damps, f > 0 brightens and adds shimmer
+  function feedbackTimbre(eng, p, f) {
+    const damp = f < 0 ? -f : 0, lift = f > 0 ? f : 0;
+    switch (eng) {
+      case 'pluck': p.bright = Math.max(0.05, Math.min(0.95, p.bright * (1 - 0.6 * damp) + 0.3 * lift)); p.decay = Math.min(0.9995, p.decay - 0.006 * damp + 0.0025 * lift); break;
+      case 'modal': case 'glass':
+        p.decays = p.decays.map(d => d * (1 - 0.65 * damp) * (1 + 0.5 * lift));
+        p.amps = p.amps.map((a, i) => i === 0 ? a : a * (1 - 0.7 * damp) * (1 + 1.2 * lift));
+        if (eng === 'glass') p.ratios[1] = 1 + 0.0035 * (1 + 4 * lift); break;
+      case 'fm': p.index = Math.max(0.05, p.index * (1 - 0.8 * damp) * (1 + 1.5 * lift)); p.decay *= (1 - 0.6 * damp) * (1 + 0.4 * lift); break;
+      case 'pad': p.cutoff = Math.max(0.6, p.cutoff * (1 - 0.6 * damp) * (1 + 1.2 * lift)); p.detune *= 1 + 3 * lift; p.release *= 1 - 0.5 * damp; break;
+      case 'click': p.q = Math.max(4, p.q * (1 - 0.7 * damp) * (1 + 1.0 * lift)); p.decay *= (1 - 0.6 * damp) * (1 + 0.5 * lift); break;
     }
   }
 
@@ -204,8 +224,9 @@
     if (!st) return;
     rings.push({t: st.t, r: det.nR > 1 ? ev.r : -1, born: performance.now(), g: st.g, quiet: !audible(st.g), hyp: st.pol < 0});
     if (!audible(st.g) || area[st.g].level <= 0) return;
-    const p = Object.assign({}, st.p);
+    const p = JSON.parse(JSON.stringify(st.p));
     if (st.engine === 'pluck') p.bright = Math.min(0.95, p.bright + 0.25 * ev.vel + 0.08 * ev.lift);
+    if ($('fbOn').checked && $('fbTarget').value.includes(String(st.g))) feedbackTimbre(st.engine, p, Math.max(-1, Math.min(1, ev.fb * +$('fbDepth').value)));
     const n = {midi: st.midi, vel: ev.vel * area[st.g].level, pan: ev.pan, dur: DUR[st.g], engine: st.engine, p,
       channel: $('midiCh').value === 'layer' ? st.g + (st.pol < 0 ? 5 : 0) : (st.pol < 0 ? 1 : 0)};
     if (playing) Sound.play(n, {internal: $('internal').checked, midi: true});
@@ -218,7 +239,8 @@
     const m = e.data;
     if (m.cmd === 'ready') {
       types = m.types; X = m.x; Y = m.y; nodeOf = m.nodeOf; region = m.region; NR = m.NR; scale = m.scale;
-      tauList = m.tau;
+      tauList = m.tau; fbInfo = m.fbInfo;
+      if (fbInfo) $('fbHint').innerHTML = `Medulla → lamina feedback shapes the timbre. In this model ${(100 * fbInfo.fraction).toFixed(0)}% of the synaptic weight onto L1–L5 comes from medulla-resident cells (${fbInfo.sources.slice(0, 4).map(([k]) => k).join(', ')}…). Net inhibitory feedback damps notes (darker, shorter); net excitatory feedback brightens them.`;
       const order = types.map((t, i) => [m.tau[i], t]).sort((a, b) => a[0] - b[0]);
       order.forEach(([, t], r) => tauRank[t] = r / (order.length - 1));
       Stimuli.init(X, Y); layoutCascade(); ready = true; applyPreset('cascade');
@@ -255,12 +277,12 @@
       }
       if (acc > 10 * DT) acc = 10 * DT; // don't build up debt if the browser can't keep up
     }
-    drawEye(); drawRoll(realDt); if ((frameN++ & 1) === 0) drawCascade();
+    drawEye(); drawRoll(realDt); drawFb(); if ((frameN++ & 1) === 0) drawCascade();
     requestAnimationFrame(tick);
   }
   let frameN = 0;
   const stats = {notes: 0, byGroup: [0, 0, 0, 0, 0], dep: 0, hyp: 0};
-  window.__flyharp = {stats, P, area, get strings() { return strings; }, get simT() { return simT; }, toggleType: t => toggleType(t)};
+  window.__flyharp = {stats, P, area, fbR, get fbInfo() { return fbInfo; }, get strings() { return strings; }, get simT() { return simT; }, toggleType: t => toggleType(t)};
 
   // ---------------------------------------------------------------- drawing: eye
   const eye = $('eye'), ex = eye.getContext('2d');
@@ -291,6 +313,26 @@
   eye.addEventListener('pointerdown', e => { if (P.kind !== 'paint') { $('kind').value = 'paint'; $('kind').onchange(); } drawing = true; eye.setPointerCapture(e.pointerId); paintAt(e); });
   eye.addEventListener('pointermove', e => { if (drawing) paintAt(e); });
   eye.addEventListener('pointerup', () => drawing = false);
+
+  // ---------------------------------------------------------------- drawing: feedback meter (7 regions, bipolar)
+  const fbC = $('fbMeter'), fx = fbC.getContext('2d');
+  function drawFb() {
+    const W = fbC.width, H = fbC.height, LW = 52, n = 7, w = (W - LW - 4) / n, mid = 19;
+    fx.fillStyle = '#0f1115'; fx.fillRect(0, 0, W, H);
+    fx.font = '10px -apple-system, Segoe UI, sans-serif';
+    fx.fillStyle = '#f0c75a'; fx.fillText('brighten', 4, 12);
+    fx.fillStyle = '#7f8cff'; fx.fillText('damp', 4, mid + 14);
+    fx.fillStyle = '#2a2d36'; fx.fillRect(LW, mid, W - LW - 4, 1);
+    const labels = ['centre', '←', '↖', '↗', '→', '↘', '↙'];
+    fx.textAlign = 'center';
+    for (let r = 0; r < n; r++) {
+      const v = Math.max(-1, Math.min(1, fbR[r] * +$('fbDepth').value)), x = LW + r * w, hgt = Math.abs(v) * 15;
+      fx.fillStyle = v < 0 ? '#7f8cff' : '#f0c75a';
+      fx.fillRect(x + 3, v < 0 ? mid + 1 : mid - hgt, w - 6, hgt);
+      fx.fillStyle = '#6c6a64'; fx.fillText(labels[r], x + w / 2, H - 3);
+    }
+    fx.textAlign = 'start';
+  }
 
   // ---------------------------------------------------------------- drawing: piano roll
   const rollC = $('roll'), rx = rollC.getContext('2d'), rollW = rollC.width, roll = [];

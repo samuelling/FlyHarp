@@ -51,6 +51,15 @@
       <label>max notes / s <input type="range" id="rate" min="4" max="60" step="1" value="24"><output></output></label>
     </section>
     <section>
+      <h2>Feedback</h2>
+      <p class="hint" id="fbHint">Medulla → lamina feedback shapes the timbre: net inhibitory feedback damps notes (darker, shorter), net excitatory feedback brightens them.</p>
+      <label class="row"><input type="checkbox" id="fbOn" checked> feedback colours timbre</label>
+      <label>depth <input type="range" id="fbDepth" min="0" max="2" step="0.1" value="1"><output></output></label>
+      <label>applies to <select id="fbTarget"><option value="1">lamina</option><option value="01">retina + lamina</option><option value="01234">all areas</option></select></label>
+      <canvas id="fbMeter" width="260" height="46"></canvas>
+      <p class="hint">feedback per eye region (sectors as seen on the eye)</p>
+    </section>
+    <section>
       <h2>Pitch</h2>
       <label>scale <select id="scale">
         <option value="majpent">major pentatonic</option><option value="minpent">minor pentatonic</option>
@@ -94,6 +103,8 @@
         that type's own response range, it plucks a note. Pitch follows depth in the visual system: retina lowest, lamina,
         medulla, transmedulla, then the T4/T5 motion detectors highest. Pan follows the region's position on the eye, and loudness the size of the response.
         Every strung cell type has two strings: one for depolarisation and one for hyperpolarisation. The hyperpolarisation string plays an octave lower, darker, with a reversed envelope that swells in, so light-off and light-on responses sound like each other's shadow.
+        Feedback from the medulla to the lamina is heard as timbre. In the model, about 40% of the synaptic weight onto L1–L5 comes from medulla-resident cells
+        (C2, C3, Lawf and medulla interneurons contacting L-cell terminals). FlyHarp tracks that feedback current in each eye region: net inhibition damps the notes there, and net excitation brightens them.
         Each area of the visual system is its own instrument family, and each cell type a variant of it. A cell's envelope follows its fitted membrane time constant, so fast cells click and slow cells swell.
         Because the network has real integration time constants, a flash ripples through the layers over tens of milliseconds;
         slowing the tempo stretches that ripple into a melody.</p>

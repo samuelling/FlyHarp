@@ -68,3 +68,4 @@ canvas{background:#0a0b0d;border:1px solid var(--line);border-radius:10px;displa
 .ring.dash{border:2px dashed #5aa6e8}
 .area .head .nm{cursor:help}
 figcaption{line-height:1.6}
+#fbMeter{width:100%;height:auto;margin-top:4px;background:#0f1115}

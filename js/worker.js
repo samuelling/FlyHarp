@@ -3,6 +3,9 @@
 //   in  {cmd:'run', frames:[Float32Array(721)]} -> out {cmd:'frames', act:[Float32Array(nT)], cx, cy, V}
 importScripts('engine.js');
 let eng = null, typeNodes = null, xs = null, ys = null, region = null, regCount = null, NR = 7, scale = null;
+// medulla -> lamina feedback: synapses onto L1-L5 from medulla-resident cells (C2, C3, Lawf1/2 and medulla
+// interneurons contacting L-cell terminals). fbE*: edge index, target node; fb0: value on a grey screen
+let fbEdge = null, fbTgt = null, fb0 = null, fbCount = null, fbScale = 1;
 
 self.onmessage = async (ev) => {
   const msg = ev.data;
@@ -21,13 +24,14 @@ self.onmessage = async (ev) => {
     }
     regCount = new Float32Array(eng.nT * NR);
     for (let t = 0; t < eng.nT; t++) for (const i of typeNodes[t]) regCount[t * NR + region[eng.nodeCol[i]]]++;
+    setupFeedback(model);
     scale = calibrate();
     eng.settle(0.5, 2);
     self.postMessage({cmd: 'ready', N: eng.N, nE: eng.nE, types: model.types, x: Array.from(xs), y: Array.from(ys),
-      nodeOf: eng.nodeOf.map(a => Array.from(a)), region: Array.from(region), NR, scale: Array.from(scale), tau: model.tau});
+      nodeOf: eng.nodeOf.map(a => Array.from(a)), region: Array.from(region), NR, scale: Array.from(scale), tau: model.tau, fbInfo});
   } else if (msg.cmd === 'run') {
     const out = [];
-    for (const lum of msg.frames) { eng.step(lum); out.push(regionActivity()); }
+    for (const lum of msg.frames) { eng.step(lum); out.push(withFeedback(regionActivity())); }
     const dV = new Float32Array(eng.N);
     for (let i = 0; i < eng.N; i++) dV[i] = eng.V[i] - eng.V0[i];
     self.postMessage({cmd: 'frames', steps: out, dV}, [dV.buffer]);
@@ -54,8 +58,11 @@ function regionActivity() {
 // response scale per cell type and sign: peak regional activity to full-field gratings and ON/OFF flashes
 function calibrate() {
   eng.settle(0.5, 2);
+  eng.step(new Float32Array(eng.nC).fill(0.5)); fb0 = feedbackNow();
+  let fbMax = 1e-6;
   const nC = eng.nC, nT = eng.nT, M = nT * NR, sc = new Float32Array(2 * nT), lum = new Float32Array(nC);
   const run = (fn, n) => { for (let s = 0; s < n; s++) { fn(s, lum); eng.step(lum); const a = regionActivity();
+    const f = feedbackNow(); for (let r = 0; r < NR; r++) fbMax = Math.max(fbMax, Math.abs(f[r] - fb0[r]));
     for (let t = 0; t < nT; t++) for (let r = 0; r < NR; r++) { sc[t] = Math.max(sc[t], a[t * NR + r]); sc[nT + t] = Math.max(sc[nT + t], a[M + t * NR + r]); } } };
   for (const th of [0, Math.PI / 2]) {
     eng.settle(0.5, 1);
@@ -64,5 +71,42 @@ function calibrate() {
   eng.settle(0.5, 1);
   run((s, L) => L.fill(s < 15 ? 1 : s < 30 ? 0.5 : s < 45 ? 0 : 0.5), 60);
   for (let t = 0; t < 2 * nT; t++) sc[t] = Math.max(sc[t], 1e-4);
+  fbScale = 0.4 * fbMax; // so ordinary stimuli span most of the ±1 range
   return sc;
+}
+
+let fbInfo = null;
+function setupFeedback(model) {
+  const T = model.types, isL = new Set(['L1', 'L2', 'L3', 'L4', 'L5'].map(t => T.indexOf(t)));
+  const lamina = /^(R\d|L\d|Am|T1)$/;
+  const isFB = T.map(t => !lamina.test(t));          // C2, C3, Lawf and every medulla-resident type
+  const E = [], G = [];
+  const share = {};
+  let tot = 0;
+  for (let i = 0; i < eng.N; i++) {
+    if (!isL.has(eng.nodeType[i])) continue;
+    for (let p = eng.rowptr[i]; p < eng.rowptr[i + 1]; p++) {
+      const st = eng.nodeType[eng.src[p]], a = Math.abs(eng.w[p]);
+      tot += a;
+      if (isFB[st]) { E.push(p); G.push(i); share[T[st]] = (share[T[st]] || 0) + a; }
+    }
+  }
+  fbEdge = Int32Array.from(E); fbTgt = Int32Array.from(G);
+  fbCount = new Float32Array(NR);
+  for (const t of isL) for (const i of typeNodes[t]) fbCount[region[eng.nodeCol[i]]]++;
+  const fbTot = Object.values(share).reduce((a, b) => a + b, 0);
+  fbInfo = {fraction: fbTot / tot, sources: Object.entries(share).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([k, v]) => [k, v / tot])};
+}
+// signed feedback current onto L cells relative to grey, averaged per region (negative = net inhibitory)
+function feedbackNow() {
+  const R = eng.R, f = new Float32Array(NR);
+  for (let k = 0; k < fbEdge.length; k++) { const p = fbEdge[k], i = fbTgt[k]; f[region[eng.nodeCol[i]]] += eng.w[p] * R[eng.src[p]]; }
+  for (let r = 0; r < NR; r++) f[r] /= Math.max(fbCount[r], 1);
+  return f;
+}
+function withFeedback(a) {
+  const f = feedbackNow(), out = new Float32Array(a.length + NR);
+  out.set(a);
+  for (let r = 0; r < NR; r++) out[a.length + r] = (f[r] - fb0[r]) / fbScale;
+  return out;
 }

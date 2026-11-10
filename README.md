@@ -15,6 +15,7 @@ A synthesizer played by the *Drosophila* visual system. A stimulus (or your webc
 - **Hierarchy mixer.** The five areas (retina, lamina, medulla, medulla → lobula, lobula plate) can each be soloed, muted, levelled and given an instrument. Cell types are strung or unstrung with chips, or by clicking their maps in the cascade.
 - **Timbre.** Each area is an instrument family: bowed pad, marimba, harp (Karplus–Strong), FM bell, glass, or pitched click. Each cell type is its own variant within that family. Its **envelope comes from the cell's fitted membrane time constant**, so fast cells are percussive and slow cells sustain, and a hash of its name sets partial ratios, FM ratio and brightness. Everything runs in one AudioWorklet (`js/voices-worklet.js`) with reverb, plus Web MIDI out (one channel per area, or all on channel 1).
 
+- **Feedback as timbre.** The worker tracks the feedback current onto L1–L5 from medulla-resident cells in each eye region, relative to grey. These are C2, C3, Lawf and the medulla interneurons that contact L-cell terminals, about 38% of the synaptic weight onto L cells in this model. Net inhibitory feedback damps notes in that region (darker, shorter, less FM, lower resonance). Net excitatory feedback brightens them and adds shimmer. Depth and target areas are adjustable, and a bipolar meter shows the feedback live.
 - **Hover cards** (`js/info.js`) give each visual area and each of the 65 cell types a short summary of its putative role, plus live facts: time constant, its notes, and how often it has plucked.
 
 ## Files
