@@ -266,7 +266,12 @@
       order.forEach(([, t], r) => tauRank[t] = r / (order.length - 1));
       Stimuli.init(X, Y); layoutCascade(); ready = true; applyPreset('cascade');
       if (P.kind === 'webcam') useCamera();
+      window.FlyHarp = {types, X, Y, nodeOf, scale, groupOf, N: m.N, nE: m.nE, dv: () => lastDV,
+        requestEdges: k => worker.postMessage({cmd: 'edges', k})};
+      window.dispatchEvent(new Event('flyharp-ready'));
       status(`${m.N.toLocaleString()} neurons, ${(m.nE / 1e6).toFixed(2)}M synapses running · press Start for sound`);
+    } else if (m.cmd === 'edges') {
+      window.dispatchEvent(new CustomEvent('flyharp-edges', {detail: m}));
     } else if (m.cmd === 'frames') {
       busy = false; lastDV = m.dV; lastFbc = m.fbc;
       const batch = pendingBatch; pendingBatch = null;

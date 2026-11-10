@@ -132,6 +132,20 @@
         <p class="hint" id="eyehint"></p>
       </div>
     </section>
+    <section class="lobeBox">
+      <div class="lobeHead">
+        <h2 class="heroTitle">Inside the optic lobe</h2>
+        <p class="lead">Every neuron in the model as a ball, the strongest synapses as sticks, lit live by the same simulation that plays the notes. Drag to turn, pinch or scroll to zoom, hover a ball to name it.</p>
+      </div>
+      <div class="lobeWrap" id="lobeWrap">
+        <canvas id="lobe"></canvas>
+        <div id="lobeLabels"></div>
+        <div class="lobeTools"><button class="small on" id="lobeSpin">spin</button><button class="small on" id="lobeSticks">synapses</button><button class="small" id="lobeView">3/4 view</button><button class="small" id="lobeSide">side view</button></div>
+        <div class="lobeTip" id="lobeTip"></div>
+        <div class="lobeCount" id="lobeCount">loading the network…</div>
+      </div>
+      <figcaption class="legend"><span><i class="dot" style="background:#ffb44f"></i>depolarised</span><span><i class="dot" style="background:#4f9cff"></i>hyperpolarised</span><span><i class="sw" style="background:#ffae42"></i>synapse pushing its target up</span><span><i class="sw" style="background:#6a7dff"></i>pushing it down</span><span class="muted">sticks fade toward the cell they drive · layout is schematic: each area is a curved sheet of the eye's 721 columns, cell types in sublayers, the map flipped by each optic chiasm</span></figcaption>
+    </section>
     <figure class="rollbox">
       <canvas id="roll" width="1180" height="260"></canvas>
       <figcaption class="legend"><span><i class="sw fill"></i>depolarisation</span><span><i class="sw hollow"></i>hyperpolarisation (octave down, swells in)</span><span class="muted">bands: each area's pitch range · time runs right → left</span></figcaption>
@@ -164,5 +178,6 @@
 <script src="js/stimuli.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/app.js"></script>
+<script type="module" src="js/lobe.js"></script>
 </body>
 </html>

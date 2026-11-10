@@ -36,6 +36,17 @@ self.onmessage = async (ev) => {
     for (let i = 0; i < eng.N; i++) dV[i] = eng.V[i] - eng.V0[i];
     const fbc = feedbackCols();
     self.postMessage({cmd: 'frames', steps: out, dV, fbc}, [dV.buffer, fbc.buffer]);
+  } else if (msg.cmd === 'edges') {
+    // the k strongest inputs onto every neuron, for the 3D ball-and-stick view
+    const k = msg.k || 2, S = [], T = [], W = [];
+    for (let i = 0; i < eng.N; i++) {
+      const a = eng.rowptr[i], b = eng.rowptr[i + 1], idx = [];
+      for (let p = a; p < b; p++) if (eng.src[p] !== i) idx.push(p);
+      idx.sort((p, q) => Math.abs(eng.w[q]) - Math.abs(eng.w[p]));
+      for (let j = 0; j < Math.min(k, idx.length); j++) { S.push(eng.src[idx[j]]); T.push(i); W.push(eng.w[idx[j]]); }
+    }
+    const src = Int32Array.from(S), tgt = Int32Array.from(T), w = Float32Array.from(W);
+    self.postMessage({cmd: 'edges', src, tgt, w}, [src.buffer, tgt.buffer, w.buffer]);
   } else if (msg.cmd === 'reset') {
     eng.settle(0.5, 2);
   }
