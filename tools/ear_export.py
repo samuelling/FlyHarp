@@ -56,7 +56,8 @@ def jo_group(ct):
         'E' if g.startswith('E') else 'F' if g.startswith('F') else 'X'
 P = A.reindex(ids)
 x = P.pos_x.astype(float).values; y = P.pos_y.astype(float).values
-x = np.where(np.isnan(x), np.nanmean(x), x); y = np.where(np.isnan(y), np.nanmean(y), y)   # a few lack a position
+z = P.pos_z.astype(float).values
+x = np.where(np.isnan(x), np.nanmean(x), x); y = np.where(np.isnan(y), np.nanmean(y), y); z = np.where(np.isnan(z), np.nanmean(z), z)   # a few lack a position
 neurons = dict(
     n=N, tiers=[len(T) for T in tiers], edges=int(len(ee)), synapses=int(ee.syn_count.sum()),
     type=[(c if isinstance(c, str) else '') for c in P.cell_type.values],
@@ -65,6 +66,7 @@ neurons = dict(
     intot=[int(intot.get(r, 0)) for r in ids],
     # frontal view: x across the brain, y down; scaled to roughly [-1, 1]
     x=list(np.round((x - np.nanmean(x)) / 90000, 4)), y=list(np.round(-(y - np.nanmean(y)) / 90000, 4)),
+    z=list(np.round((z - np.nanmean(z)) / 9000, 4)),    # anterior-posterior: z is in 40 nm sections, x and y in 4 nm voxels
     jo=[jo_group(c) for c in P.cell_type.values[:len(tiers[0])]],
     source='FlyWire v783 (Dorkenwald et al. 2024; Schlegel et al. 2024): proofread connections and cell-type annotations')
 json.dump(neurons, open(OUT + 'ear.json', 'w'), separators=(',', ':'))

@@ -4,7 +4,7 @@ A synthesizer played by the *Drosophila* visual system. A stimulus (or your webc
 
 **Play:** https://samuelling.github.io/FlyHarp/ (GitHub Pages from `main`, root)
 
-**Layout.** The page leads with *What its Connectome Sees* (the eye, its lenses and wiring), then *What its Connectome Hears* (the ear pictures and the piano roll). Every control lives in a drawer on the right, in four tabs: Stimulus, Instrument, Hearing and Model. Tap or drag its edge tab, or press Tab. On wide screens it opens by default and the page narrows beside it.
+**Layout.** Two views, toggled by the big tabs under the header. *What its Connectome Sees* shows the eye, its lenses and wiring, the 3D optic lobe and the cascade. *What its Connectome Hears* shows the ear pictures, the piano roll, and the auditory connectome in 3D: the ear network's 4,222 neurons at their FlyWire positions, with the 6,000 strongest synapses, lit live by the ear model. Every control lives in a drawer on the right, in four tabs: Stimulus, Instrument, Hearing and Model. Tap or drag its edge tab, or press Tab. On wide screens it opens by default and the page narrows beside it.
 
 ## How it works
 
@@ -56,6 +56,7 @@ js/engine.js         the network (shared by the worker and Node tests)
 js/gain.js           optional photoreceptor adaptation and divisive normalization
 js/eyegeom.js        eye geometry: idealized lattice or measured eye; facets and lattice-to-world Jacobians
 js/tonnectome.js     The Tonnectome: ear pictures, ear -> eye
+js/ear3d.js          the auditory connectome in 3D (three.js), lit by the ear model
 js/ear-worklet.js    antennae: resonance + 32-band push/pull filterbank (AudioWorklet)
 js/ear-net.js, js/ear-worker.js  Johnston's organ + early auditory network from FlyWire
 data/ear.json, data/ear.bin      the auditory network (tools/ear_export.py)

@@ -6,7 +6,7 @@
 <title>FlyHarp · a synthesizer played by the fly visual system</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bowlby+One+SC&family=Courier+Prime:wght@400;700&family=Spline+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=202611111132">
+<link rel="stylesheet" href="css/style.css?v=202611111157">
 </head>
 <body>
 <header>
@@ -51,6 +51,10 @@
 <main>
 
   <section id="stage">
+    <nav class="viewTabs" role="tablist">
+      <button data-view="sees" class="on" role="tab">What its Connectome <b>Sees</b></button><button data-view="hears" role="tab">What its Connectome <b>Hears</b></button>
+    </nav>
+    <section class="view on" id="view-sees">
     <section class="hero">
       <div class="heroLeft">
       <div class="heroEye">
@@ -60,7 +64,6 @@
       </div>
       </div>
       <div class="lensPanel">
-        <h2 class="heroTitle">What its Connectome Sees</h2>
         <p class="lead">Your camera, through 721 ommatidia. Then follow the image down the fly's visual system: each lens shows the same scene as one stage of the optic lobe represents it, live.</p>
         <div id="lenses" class="lenses"></div>
         <div class="lensInfo" id="lensInfo"></div>
@@ -70,21 +73,6 @@
         <label class="row small"><input type="checkbox" id="arrows" checked> motion arrows</label>
         <p class="hint" id="eyehint"></p>
       </div>
-    </section>
-    <section class="hears">
-      <div class="hearsHead"><h2 class="heroTitle">What its Connectome Hears</h2>
-        <p class="lead">The fly's ears listen to its eyes: everything the instrument plays goes into a model of its antennae and early auditory network, wired from FlyWire. Pick a picture of what it hears; send it back into the eye from the <b>Hearing</b> tab.</p></div>
-      <div class="tnRow">
-        <figure class="tnFig"><canvas id="tnCoch" width="720" height="260"></canvas>
-          <figcaption>What each antenna picks up: 40 Hz to 1.6 kHz, low at the bottom, time running right to left over 2.4 s.</figcaption></figure>
-        <figure class="tnArtFig"><canvas id="tnArt" width="420" height="420"></canvas>
-          <div class="tnViews" id="tnViews"></div>
-          <figcaption id="tnViewNote"></figcaption></figure>
-      </div>
-      <figure class="rollbox">
-      <canvas id="roll" width="1180" height="260"></canvas>
-      <figcaption class="legend"><span><i class="sw fill"></i>depolarisation</span><span><i class="sw hollow"></i>hyperpolarisation (octave down, swells in)</span><span class="muted">bands: each area's pitch range · time runs right → left</span></figcaption>
-    </figure>
     </section>
     <section class="lobeBox">
       <div class="lobeHead">
@@ -104,6 +92,37 @@
       <canvas id="cascade" width="1180" height="432"></canvas>
       <figcaption class="legend"><span><i class="grad"></i>hyperpolarised · grey · depolarised (relative to a grey screen)</span><span><i class="ring"></i>pluck</span><span><i class="ring dash"></i>hyperpolarisation pluck</span><span class="muted">bright = strung · click a map to string it · hover for what each cell does</span></figcaption>
     </figure>
+    </section>
+    <section class="view" id="view-hears">
+    <section class="hears">
+      <div class="hearsHead">
+        <p class="lead">The fly's ears listen to its eyes: everything the instrument plays goes into a model of its antennae and early auditory network, wired from FlyWire. Pick a picture of what it hears; send it back into the eye from the <b>Hearing</b> tab.</p></div>
+      <div class="tnRow">
+        <figure class="tnFig"><canvas id="tnCoch" width="720" height="260"></canvas>
+          <figcaption>What each antenna picks up: 40 Hz to 1.6 kHz, low at the bottom, time running right to left over 2.4 s.</figcaption></figure>
+        <figure class="tnArtFig"><canvas id="tnArt" width="420" height="420"></canvas>
+          <div class="tnViews" id="tnViews"></div>
+          <figcaption id="tnViewNote"></figcaption></figure>
+      </div>
+      <figure class="rollbox">
+      <canvas id="roll" width="1180" height="260"></canvas>
+      <figcaption class="legend"><span><i class="sw fill"></i>depolarisation</span><span><i class="sw hollow"></i>hyperpolarisation (octave down, swells in)</span><span class="muted">bands: each area's pitch range · time runs right → left</span></figcaption>
+    </figure>
+    </section>
+    <section class="lobeBox earBox">
+      <div class="lobeHead">
+        <h2 class="heroTitle">Inside the auditory connectome</h2>
+        <p class="lead">The ear network from FlyWire at its real place in the brain, seen from the front: Johnston's organ neurons, then three steps inward. Each ball is a neuron, the strongest synapses are sticks, and both light up live as the model hears the instrument. Drag to turn, scroll or pinch to zoom, hover a ball to name it.</p>
+      </div>
+      <div class="lobeWrap" id="earWrap">
+        <canvas id="ear3d"></canvas>
+        <div class="lobeTools"><button class="small on" id="earSpin">spin</button><button class="small on" id="earSticks">synapses</button><button class="small" id="earFront">front view</button><button class="small" id="earTop">top view</button></div>
+        <div class="lobeTip" id="earTip"></div>
+        <div class="lobeCount" id="earCount">loading the auditory network…</div>
+      </div>
+      <figcaption class="legend"><span><i class="dot" style="background:#4fb3a4"></i>Johnston's organ</span><span><i class="dot" style="background:#e0c35a"></i>2nd step</span><span><i class="dot" style="background:#e88a4f"></i>3rd step</span><span><i class="dot" style="background:#e2576b"></i>4th step</span><span><i class="dot" style="background:#fff4d6"></i>active</span><span><i class="sw" style="background:#ffae42"></i>excitatory drive</span><span><i class="sw" style="background:#6a7dff"></i>inhibitory drive</span></figcaption>
+    </section>
+    </section>
     <details class="about">
       <summary>What am I hearing?</summary>
       <p>The network is the connectome-constrained model of the fly optic lobe by Lappalainen et al. (Nature 2024), the best of their 50-model ensemble.
@@ -255,14 +274,15 @@
   </div>
 </div>
 <div id="tip" class="tip" role="tooltip"></div>
-<script>window.FH_V = '202611111132';  /* build stamp, set by tools/stamp.py: versions workers, worklet and data too */</script>
-<script src="js/info.js?v=202611111132"></script>
-<script src="js/stimuli.js?v=202611111132"></script>
-<script src="js/eyegeom.js?v=202611111132"></script>
-<script src="js/ear-net.js?v=202611111132"></script>
-<script src="js/tonnectome.js?v=202611111132"></script>
-<script src="js/audio.js?v=202611111132"></script>
-<script src="js/app.js?v=202611111132"></script>
-<script type="module" src="js/lobe.js?v=202611111132"></script>
+<script>window.FH_V = '202611111157';  /* build stamp, set by tools/stamp.py: versions workers, worklet and data too */</script>
+<script src="js/info.js?v=202611111157"></script>
+<script src="js/stimuli.js?v=202611111157"></script>
+<script src="js/eyegeom.js?v=202611111157"></script>
+<script src="js/ear-net.js?v=202611111157"></script>
+<script src="js/tonnectome.js?v=202611111157"></script>
+<script src="js/audio.js?v=202611111157"></script>
+<script src="js/app.js?v=202611111157"></script>
+<script type="module" src="js/ear3d.js?v=202611111157"></script>
+<script type="module" src="js/lobe.js?v=202611111157"></script>
 </body>
 </html>

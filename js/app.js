@@ -236,6 +236,12 @@
   }
   window.addEventListener('keydown', e => { if (e.code === 'Tab' && !e.target.closest('input, select, textarea, button, summary, a') && !e.target.closest('#drawer')) { e.preventDefault(); setDrawer(!drawer.classList.contains('open')); } });
   setDrawer(wide());
+  // the two views
+  document.querySelectorAll('.viewTabs button').forEach(b => b.onclick = () => {
+    document.querySelectorAll('.viewTabs button').forEach(x => x.classList.toggle('on', x === b));
+    document.querySelectorAll('.view').forEach(v => v.classList.toggle('on', v.id === 'view-' + b.dataset.view));
+    window.dispatchEvent(new Event('resize'));
+  });
   // click to begin: the first click is also the gesture that lets the browser start audio
   const dismissBegin = () => { $('begin').classList.add('gone'); setTimeout(() => $('begin').remove(), 300); };
   $('beginGo').onclick = async () => { dismissBegin(); if (!playing) await $('go').onclick(); };

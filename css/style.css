@@ -234,3 +234,13 @@ label.small{font-size:12.5px;margin:3px 0}
 .hears{margin:4px 0 22px}
 .hearsHead .lead{max-width:880px}
 .hears .rollbox{margin-top:10px}
+
+/* the two views: what its connectome sees, what it hears */
+.viewTabs{display:flex;gap:6px;margin:2px 0 16px;border-bottom:1px solid var(--line)}
+.viewTabs button{border:0;background:none;color:var(--muted);font-family:inherit;font-size:19px;font-weight:500;line-height:1.2;padding:10px 14px 11px;cursor:pointer;border-radius:12px 12px 0 0;letter-spacing:-.01em}
+.viewTabs button b{font-weight:800;color:inherit}
+.viewTabs button.on{color:var(--ink);box-shadow:inset 0 -3px 0 var(--acc);background:#14161b}
+.viewTabs button:not(.on):hover{color:#cfccc4}
+.view{display:none}.view.on{display:block}
+.hears{margin:0 0 22px}
+@media(max-width:620px){.viewTabs button{font-size:15px;padding:9px 8px 10px;flex:1}}
