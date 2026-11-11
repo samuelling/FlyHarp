@@ -6,7 +6,7 @@
 <title>FlyHarp · a synthesizer played by the fly visual system</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bowlby+One+SC&family=Courier+Prime:wght@400;700&family=Spline+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=202611111157">
+<link rel="stylesheet" href="css/style.css?v=202611111207">
 </head>
 <body>
 <header>
@@ -52,7 +52,7 @@
 
   <section id="stage">
     <nav class="viewTabs" role="tablist">
-      <button data-view="sees" class="on" role="tab">What its Connectome <b>Sees</b></button><button data-view="hears" role="tab">What its Connectome <b>Hears</b></button>
+      <button data-view="sees" class="on" role="tab">What its Connectome <b>Sees</b></button><button data-view="hears" role="tab">What its Connectome <b>Hears</b></button><button data-view="tonnectome" role="tab" class="tonTab">The <b>Tonnectome</b></button>
     </nav>
     <section class="view on" id="view-sees">
     <section class="hero">
@@ -122,6 +122,25 @@
       </div>
       <figcaption class="legend"><span><i class="dot" style="background:#4fb3a4"></i>Johnston's organ</span><span><i class="dot" style="background:#e0c35a"></i>2nd step</span><span><i class="dot" style="background:#e88a4f"></i>3rd step</span><span><i class="dot" style="background:#e2576b"></i>4th step</span><span><i class="dot" style="background:#fff4d6"></i>active</span><span><i class="sw" style="background:#ffae42"></i>excitatory drive</span><span><i class="sw" style="background:#6a7dff"></i>inhibitory drive</span></figcaption>
     </section>
+    </section>
+    <section class="view" id="view-tonnectome">
+      <p class="lead loopLead">The loop closed: the fly's eye sees only what its ears hear. The optic lobe turns that picture into notes, the notes reach the antennae, the auditory connectome hears them, and what it hears becomes the next picture the eye sees.</p>
+      <div class="loopRow">
+        <div class="loopSide" id="slotEye"><div class="loopHead"><span class="loopNum">1</span> the eye sees what the ears hear</div><div class="lensMini" id="lensMini"></div></div>
+        <ol class="loopFlow" id="loopFlow">
+          <li data-k="eye"><b>721 ommatidia</b><span>see the ear's picture</span></li>
+          <li data-k="lobe"><b>optic lobe</b><span id="lfLobe">45,669 neurons</span></li>
+          <li data-k="notes"><b>the instrument</b><span id="lfNotes">–</span></li>
+          <li data-k="ears"><b>antennae</b><span id="lfEars">–</span></li>
+          <li data-k="net"><b>auditory connectome</b><span id="lfNet">–</span></li>
+          <li data-k="pic"><b>a picture</b><span id="lfPic">–</span></li>
+        </ol>
+        <div class="loopSide" id="slotEar"><div class="loopHead"><span class="loopNum">2</span> the ears hear what the eye sees</div></div>
+      </div>
+      <div class="loopCtl">
+        <label>what the eye sees <input type="range" id="loopMix" min="0" max="1" step="0.05" value="1"><output>only the ears</output></label>
+        <p class="hint">Slide left to mix the stimulus or camera back in. Instruments, tempo and the ear's gain are in the drawer; every change runs round the loop.</p>
+      </div>
     </section>
     <details class="about">
       <summary>What am I hearing?</summary>
@@ -274,15 +293,15 @@
   </div>
 </div>
 <div id="tip" class="tip" role="tooltip"></div>
-<script>window.FH_V = '202611111157';  /* build stamp, set by tools/stamp.py: versions workers, worklet and data too */</script>
-<script src="js/info.js?v=202611111157"></script>
-<script src="js/stimuli.js?v=202611111157"></script>
-<script src="js/eyegeom.js?v=202611111157"></script>
-<script src="js/ear-net.js?v=202611111157"></script>
-<script src="js/tonnectome.js?v=202611111157"></script>
-<script src="js/audio.js?v=202611111157"></script>
-<script src="js/app.js?v=202611111157"></script>
-<script type="module" src="js/ear3d.js?v=202611111157"></script>
-<script type="module" src="js/lobe.js?v=202611111157"></script>
+<script>window.FH_V = '202611111207';  /* build stamp, set by tools/stamp.py: versions workers, worklet and data too */</script>
+<script src="js/info.js?v=202611111207"></script>
+<script src="js/stimuli.js?v=202611111207"></script>
+<script src="js/eyegeom.js?v=202611111207"></script>
+<script src="js/ear-net.js?v=202611111207"></script>
+<script src="js/tonnectome.js?v=202611111207"></script>
+<script src="js/audio.js?v=202611111207"></script>
+<script src="js/app.js?v=202611111207"></script>
+<script type="module" src="js/ear3d.js?v=202611111207"></script>
+<script type="module" src="js/lobe.js?v=202611111207"></script>
 </body>
 </html>

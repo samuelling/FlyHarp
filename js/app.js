@@ -240,6 +240,7 @@
   document.querySelectorAll('.viewTabs button').forEach(b => b.onclick = () => {
     document.querySelectorAll('.viewTabs button').forEach(x => x.classList.toggle('on', x === b));
     document.querySelectorAll('.view').forEach(v => v.classList.toggle('on', v.id === 'view-' + b.dataset.view));
+    setLoop(b.dataset.view === 'tonnectome');
     window.dispatchEvent(new Event('resize'));
   });
   // click to begin: the first click is also the gesture that lets the browser start audio
@@ -837,4 +838,57 @@
     const on = [m.p.adapt && 'photoreceptor adaptation', m.p.norm && `normalization of the ${m.p.target === 'both' ? 'lamina and medulla' : m.p.target} (pool ${m.p.poolR}, c50 ${m.p.c50})`].filter(Boolean);
     $('pNote').innerHTML = `${m.type}: ${on.length ? on.join(' + ') : 'gain control off, so only the trained network'} · size tuning: <span style="color:${A}">80%</span> and <span style="color:${Bc}">12%</span> contrast`;
   }
+
+  // ---------------------------------------------------------------- The Tonnectome view: the eye wired to the ears
+  // The eye and the ear picture are moved (not copied) into the loop view, so they keep running as they are, and
+  // put back when you leave. While the view is open the stimulus is what the ears hear, mixed with the chosen
+  // stimulus by the loop slider.
+  const loopState = {on: false, prevKind: null, prevMix: 0, homes: []};
+  function moveTo(el, slot) { const mark = document.createComment('home'); el.parentNode.insertBefore(mark, el); loopState.homes.push([el, mark]); slot.appendChild(el); }
+  function applyLoopMix() {
+    const v = +$('loopMix').value;
+    $('loopMix').parentElement.querySelector('output').textContent = v >= 0.999 ? 'only the ears' : v <= 0.001 ? 'only the stimulus' : `${Math.round(v * 100)}% ears`;
+    if (!loopState.on) return;
+    if (v >= 0.999) { P.kind = 'ear'; $('kind').value = 'ear'; }
+    else { const k = loopState.prevKind === 'ear' ? 'grating' : loopState.prevKind; if (P.kind !== k) { $('kind').value = k; $('kind').onchange(); } P.earMix = v; }
+  }
+  $('loopMix').oninput = applyLoopMix;
+  function setLoop(on) {
+    if (on === loopState.on) return;
+    loopState.on = on;
+    if (on) {
+      loopState.prevKind = P.kind; loopState.prevMix = P.earMix || 0;
+      moveTo(document.querySelector('.heroEye'), $('slotEye'));
+      $('slotEye').appendChild($('lensMini'));
+      moveTo(document.querySelector('.tnArtFig'), $('slotEar'));
+      if (!playing && ready) $('go').onclick();          // the tab click is the gesture that lets sound start
+      applyLoopMix(); renderLensMini();
+    } else {
+      for (const [el, mark] of loopState.homes.reverse()) { mark.parentNode.insertBefore(el, mark); mark.remove(); }
+      loopState.homes = [];
+      P.earMix = loopState.prevMix; $('tnMix').value = P.earMix; $('tnMix').dispatchEvent(new Event('input'));
+      if (P.kind !== loopState.prevKind) { $('kind').value = loopState.prevKind; $('kind').onchange(); }
+    }
+  }
+  function renderLensMini() {
+    $('lensMini').innerHTML = LENSES.map(L => `<button data-l="${L.id}" class="${L.id === lens ? 'on' : ''}">${L.name}</button>`).join('');
+    $('lensMini').querySelectorAll('button').forEach(b => b.onclick = () => { lens = b.dataset.l; renderLenses(); renderLensMini(); });
+  }
+  // live readouts along the loop
+  let lfNotes0 = 0, lfT0 = performance.now();
+  setInterval(() => {
+    if (!loopState.on) return;
+    const now = performance.now(), dn = stats.notes - lfNotes0, nps = dn / ((now - lfT0) / 1000); lfNotes0 = stats.notes; lfT0 = now;
+    $('lfNotes').textContent = `${nps.toFixed(1)} notes / s`;
+    $('lfLobe').textContent = `${strings.length} strings · ${P.kind === 'ear' ? 'seeing only sound' : 'seeing sound + stimulus'}`;
+    const r = Tonnectome.rates;
+    if (r) {
+      let jo = 0, act = 0; const nJ = 1104;
+      for (let i = 0; i < r.length; i++) { if (r[i] > 0.05) { act++; if (i < nJ) jo++; } }
+      $('lfEars').textContent = `${Math.round(100 * jo / nJ)}% of ear neurons firing`;
+      $('lfNet').textContent = `${act.toLocaleString()} of ${r.length.toLocaleString()} neurons active`;
+      document.querySelectorAll('#loopFlow li').forEach(li => li.classList.toggle('hot', li.dataset.k === 'notes' ? nps > 2 : li.dataset.k === 'ears' || li.dataset.k === 'net' ? act > 200 : nps > 2 && act > 200));
+    } else $('lfEars').textContent = playing ? 'listening…' : 'press Start';
+    $('lfPic').textContent = (document.querySelector('#tnViews button.on') || {}).textContent || '';
+  }, 500);
 })();
