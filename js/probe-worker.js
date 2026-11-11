@@ -1,7 +1,7 @@
 // Runs the gain-control probe (js/probe.js) on a private copy of the network, so the instrument keeps playing.
 //   in  {cmd:'init', url}                     -> out {cmd:'ready'}
 //   in  {cmd:'probe', type, theta, p}         -> out {cmd:'progress', f} ..., {cmd:'result', type, base, cur}
-importScripts('engine.js', 'gain.js', 'probe.js');
+importScripts(...['engine.js', 'gain.js', 'probe.js'].map(f => f + self.location.search));
 let eng = null, gc = null;
 const baseCache = {};
 self.onmessage = async (ev) => {

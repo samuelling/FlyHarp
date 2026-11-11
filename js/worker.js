@@ -1,7 +1,7 @@
 // Runs the fly network off the main thread. Messages:
 //   in  {cmd:'init', url}                      -> out {cmd:'ready', N, nE, types, groupOf..}
 //   in  {cmd:'run', frames:[Float32Array(721)]} -> out {cmd:'frames', act:[Float32Array(nT)], cx, cy, V}
-importScripts('engine.js', 'gain.js');
+importScripts('engine.js' + self.location.search, 'gain.js' + self.location.search);
 let gc = null;   // optional photoreceptor adaptation + divisive normalization (js/gain.js), off by default
 let eng = null, typeNodes = null, xs = null, ys = null, region = null, regCount = null, NR = 7, scale = null;
 // medulla -> lamina feedback: synapses onto L1-L5 from medulla-resident cells (C2, C3, Lawf1/2 and medulla

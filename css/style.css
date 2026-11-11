@@ -12,18 +12,19 @@ main{display:block;min-height:calc(100vh - 60px)}
 .card{background:#111317;border:1px solid var(--line);border-radius:16px;padding:14px 18px 16px;margin:0 0 22px}
 .card .cardHead{margin-bottom:6px}
 .card h3,.grp h3{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin:2px 0 8px;font-weight:600}
-.ctlGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px;margin:12px 0 14px;align-items:start}
+.ctlGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,330px));justify-content:start;gap:12px;margin:12px 0 14px;align-items:start}
 .grp{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
 .grp.wide{grid-column:span 2}
-@media(max-width:620px){.grp.wide{grid-column:auto}}
+@media(max-width:620px){.grp.wide{grid-column:auto}.ctlGrid,.mixer #hier,.probePlots{grid-template-columns:1fr}}
 .stimbar{padding:10px 16px 8px;margin:0}
-.stimGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:0 18px;align-items:end}
+.stimGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:0 18px;align-items:end;max-width:640px}
 .stimGrid label{margin:4px 0}
-.mixer #hier{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px}
+.mixer{max-width:1420px}
+.mixer #hier{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}
 .mixer #hier .area{margin:0}
 .instrument .rollbox{margin:4px 0 0}
 label{display:grid;grid-template-columns:1fr auto;gap:2px 8px;align-items:center;margin:6px 0;font-size:13px}
-label input[type=range]{grid-column:1/-1;width:100%;accent-color:var(--acc)}
+label input[type=range]{grid-column:1/-1;width:100%;max-width:420px;accent-color:var(--acc)}
 label output{color:var(--muted);font-variant-numeric:tabular-nums;font-size:12px;grid-row:1;grid-column:2}
 label select{grid-column:1/-1}
 label.row{display:flex;gap:8px}
@@ -39,8 +40,8 @@ figure{margin:0 0 14px}
 figcaption{color:var(--muted);font-size:12px;margin-top:4px}
 canvas{background:#0a0b0d;border:1px solid var(--line);border-radius:10px;display:block;max-width:100%;height:auto}
 
-.rollbox canvas{width:100%}
-#cascade{width:100%}
+.rollbox canvas{width:100%;max-width:1180px}
+#cascade{width:100%;max-width:1180px}
 .about{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px;max-width:900px;color:#cfccc4}
 .about summary{cursor:pointer;color:var(--ink)}
 @media(max-width:800px){.eyebox canvas{width:100%}.card{padding:12px 12px 14px}
@@ -170,7 +171,7 @@ label.small{font-size:12.5px;margin:3px 0}
 .probeTools label{margin:0;gap:6px}.probeTools select{width:auto}
 .pBar{display:inline-block;width:120px;height:6px;border-radius:3px;background:var(--line);overflow:hidden}
 .pBar i{display:block;height:100%;width:0;background:var(--acc);transition:width .2s}
-.probePlots{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;max-width:1180px}
+.probePlots{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,400px));justify-content:start;gap:12px}
 .pplot{width:100%;height:auto;background:#0a0b0d;border:1px solid var(--line);border-radius:10px}
 .pplot .ax{stroke:#3a3e48;stroke-width:1}
 .pplot .pt{fill:var(--ink);font-size:12.5px;font-weight:600}

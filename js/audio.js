@@ -12,7 +12,7 @@ const Sound = (() => {
     const rev = ctx.createConvolver(); rev.buffer = impulse(3.2, 2.5);
     wet = ctx.createGain(); wet.gain.value = 0.35; rev.connect(wet); wet.connect(master);
     try {
-      await ctx.audioWorklet.addModule('js/voices-worklet.js');
+      await ctx.audioWorklet.addModule('js/voices-worklet.js' + (window.FH_V ? '?v=' + window.FH_V : ''));
       node = new AudioWorkletNode(ctx, 'voices', {outputChannelCount: [2]});
       node.connect(dry); node.connect(rev);
       ready = true;

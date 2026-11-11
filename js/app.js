@@ -28,10 +28,11 @@
   let strings = [], det = null;
   let simT = 0, acc = 0, lastNow = performance.now(), busy = false, ready = false, playing = false;
   let lastLum = new Float32Array(721).fill(0.5), lastPR = null, lastDV = null, rings = [], tokens = 24;
-  const worker = new Worker('js/worker.js');
+  const V = window.FH_V ? '?v=' + window.FH_V : '';   // cache-busting stamp (tools/stamp.py)
+  const worker = new Worker('js/worker.js' + V);
   // eye geometry (js/eyegeom.js): the idealized lattice, or the measured eye (Zhao et al. 2025)
   let G = null, eyemap = null;
-  const eyemapP = fetch('data/eyemap.json').then(r => r.json()).then(j => eyemap = j).catch(() => null);
+  const eyemapP = fetch('data/eyemap.json' + V).then(r => r.json()).then(j => eyemap = j).catch(() => null);
   function setGeometry(mode) {
     G = EyeGeom.build(mode === 'real' && eyemap ? 'real' : 'lattice', X, Y, u, v, eyemap);
     edge = X.map((_, i) => Math.max(Math.abs(u[i]), Math.abs(v[i]), Math.abs(u[i] + v[i])) >= 14 || !G.real[i]);
@@ -306,7 +307,7 @@
       keep.forEach(ev => setTimeout(() => fire(ev), ev.delay));
     }
   };
-  worker.postMessage({cmd: 'init', url: new URL('data/fly.json', location.href).href});
+  worker.postMessage({cmd: 'init', url: new URL('data/fly.json' + V, location.href).href});
   let pendingBatch = null;
 
   function tick(now) {
@@ -699,9 +700,9 @@
   }
   function runProbe() {
     if (!probeW) {
-      probeW = new Worker('js/probe-worker.js');
+      probeW = new Worker('js/probe-worker.js' + V);
       probeReady = new Promise(res => probeW.onmessage = e => { if (e.data.cmd === 'ready') res(); });
-      probeW.postMessage({cmd: 'init', url: new URL('data/fly.json', location.href).href});
+      probeW.postMessage({cmd: 'init', url: new URL('data/fly.json' + V, location.href).href});
       $('pNote').textContent = 'building a copy of the network…';
     }
     const type = $('pType').value, theta = prefDir[type] ?? 0, p = gainParams();
