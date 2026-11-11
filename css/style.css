@@ -134,11 +134,11 @@ label.small{font-size:12.5px;margin:3px 0}
 .titles{display:flex;flex-direction:column;gap:4px}
 /* megaZINE-style mast: Bowlby caps in toner, lowercase Spline superscript, and a pink riso pass
    printed slightly out of register (screen blend on the dark page). It slips like a copier sheet on notes. */
-.logo{position:relative;display:inline-block;font:400 40px/.86 "Bowlby One SC","Arial Black",Impact,sans-serif;letter-spacing:-.02em;margin:0;color:#ECEBE5;isolation:isolate}
-.logo .lc{font-family:"Spline Sans","Helvetica Neue",Arial,sans-serif;font-weight:600;letter-spacing:-.04em;font-size:.6em;vertical-align:.7em;margin-left:.06em;color:#7DB0FF}
+.logo{position:relative;display:inline-block;font:400 40px/.86 "Bowlby One SC","Arial Black",Impact,sans-serif;letter-spacing:-.02em;margin:0;color:#FFD23F;isolation:isolate}
+.logo .lc{font-family:"Spline Sans","Helvetica Neue",Arial,sans-serif;font-weight:600;letter-spacing:-.04em;font-size:.6em;vertical-align:.7em;margin-left:.06em;color:#B5773A}
 .logo .ink{position:relative;z-index:1}
-.logo .mis{position:absolute;left:0;top:0;color:#FF68BA;mix-blend-mode:screen;transform:translate(.035em,.03em) rotate(-.6deg);transform-origin:left top;pointer-events:none;z-index:2;opacity:.85;white-space:nowrap}
-.logo .mis .lc{color:#FF68BA}
+.logo .mis{position:absolute;left:0;top:0;color:#FF7A1A;transform:translate(.035em,.03em) rotate(-.6deg);transform-origin:left top;pointer-events:none;z-index:0;opacity:.92;white-space:nowrap}
+.logo .mis .lc{color:#FF7A1A}
 @keyframes logo-jit-ink{0%{transform:none}20%{transform:translate(-.014em,.006em)}45%{transform:translate(.012em,-.01em) skewX(-1.2deg)}70%{transform:translate(-.006em,.004em)}100%{transform:none}}
 @keyframes logo-jit-mis{0%{transform:translate(.035em,.03em) rotate(-.6deg)}20%{transform:translate(.075em,.012em) rotate(-1.3deg)}45%{transform:translate(.008em,.055em) rotate(.25deg)}70%{transform:translate(.055em,.038em) rotate(-.95deg)}100%{transform:translate(.035em,.03em) rotate(-.6deg)}}
 .logo.jit .ink{animation:logo-jit-ink .34s steps(1,end)}.logo.jit .mis{animation:logo-jit-mis .34s steps(1,end)}
