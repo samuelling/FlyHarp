@@ -20,8 +20,10 @@ async def main(out):
             # the ear back into the eye
             await pg.select_option('#kind', 'ear'); await pg.click('.lens >> text=Photoreceptors'); await pg.wait_for_timeout(5000)
             await pg.locator('.heroEye').screenshot(path=f'{out}/tn_eye_coch.png')
-            await pg.select_option('#tnView', 'brain'); await pg.wait_for_timeout(4000)
-            await pg.locator('.heroEye').screenshot(path=f'{out}/tn_eye_brain.png')
+            for v in ['coch', 'brain', 'chladni', 'ripples', 'helix', 'rhythm', 'glass']:
+                await pg.click(f'#tnViews button[data-v="{v}"]'); await pg.wait_for_timeout(2500)
+                await pg.locator('#tnArt').screenshot(path=f'{out}/tn_art_{v}.png')
+                await pg.locator('#eye').screenshot(path=f'{out}/tn_eye_{v}.png')
             st2 = await pg.evaluate('({frames: Tonnectome.frames, notes: window.__flyharp.stats.notes})')
             print('closed loop:', st2)
             print('\n'.join(errs) or 'no errors')

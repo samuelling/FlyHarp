@@ -36,7 +36,14 @@ A synthesizer played by the *Drosophila* visual system. A stimulus (or your webc
 - **The Tonnectome**. The fly's ears listen to its eyes. Everything the instrument plays (and, optionally, the microphone) goes into a model of the fly's antennae and early auditory network, and what it hears is drawn two ways. Either picture can be sent back into the eye, as a stimulus of its own or mixed into any other, so the loop runs sight → sound → hearing → sight.
   - **Antennae** (`js/ear-worklet.js`): a stereo AudioWorklet. Each antenna is a broad mechanical resonance (peak near 250 Hz) read by 32 band-pass channels from 40 Hz to 1.6 kHz, split into push and pull half-cycles, every 5 ms.
   - **Johnston's organ and beyond** (`tools/ear_export.py`, `js/ear-net.js`, `js/ear-worker.js`): 4,222 neurons and 1.35 M synapses from FlyWire v783. They are the 1,104 Johnston's organ neurons of both antennae, then neurons getting ≥ 10 synapses from them, then two further steps of neurons getting ≥ 20–25% of their input from the steps before (AMMC, SAD, WED, AVLP and on). Weights are synapse counts × transmitter sign ÷ each cell's total input. Johnston's organ neurons are tuned by subgroup (A high, B low, D broad, C/E sustained deflection, here the slow loudness), each divided by the energy across its antenna. Downstream is a rate network, τ dV/dt = −V + G Σ w r, r = max(0, tanh V). **It is not trained or fit**: only the wiring and signs are measured, and the gain and time constants are set by hand.
-  - **Pictures**: a two-antenna cochleogram, and the network in frontal view with each neuron where it sits. On the eye, the cochleogram scrolls across the eye (time → azimuth, pitch → elevation), so sound becomes motion for T4/T5; the network picture is splatted and blurred onto the ommatidia.
+  - **Pictures** (`js/tonnectome.js`): a two-antenna cochleogram is always shown, alongside one picture chosen from seven. Each is a faithful mapping of the ear model's outputs, drawn differently, and the eye gets it as brightness:
+    - *cochleogram*: time × pitch.
+    - *network*: the auditory neurons in frontal view, where they sit.
+    - *Chladni plate*: each of the 32 bands drives one plate mode, weighted by loudness, and light falls on the nodal lines where sand would gather.
+    - *ripples*: each antenna is a stone in a pond; the last 1.2 s of every band travels outward with pitch-set ring spacing, and the two ears interfere.
+    - *pitch helix*: one turn per octave, chroma as angle, left and right antennae mirrored.
+    - *rhythm rose*: autocorrelation of each ear's loudness in low, mid and high bands, delay as radius out to 200 ms; pulse trains such as a 35 ms courtship song draw rings.
+    - *stained glass*: one pane per cell type and side, ringed by step from the ear outward, brightness = mean activity.
 - **Hover cards** (`js/info.js`) give each visual area and each of the 65 cell types a short summary of its putative role, plus live facts: time constant, its notes, and how often it has plucked.
 
 ## Files

@@ -181,3 +181,7 @@ label.small{font-size:12.5px;margin:3px 0}
 .tnFig{flex:1 1 420px;max-width:720px;margin:0}
 .tnFig canvas{width:100%;border-radius:12px}
 .tnFig .tk{font-size:13px}
+.tnArtFig{flex:0 1 420px;margin:0;min-width:260px}
+.tnArtFig canvas{width:100%;aspect-ratio:1;border-radius:12px;background:#08090b}
+.tnViews{display:flex;flex-wrap:wrap;gap:4px;margin:8px 0 4px}
+.tnViews button.on{border-color:var(--acc);color:var(--acc)}

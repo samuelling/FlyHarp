@@ -6,7 +6,7 @@
 <title>FlyHarp · a synthesizer played by the fly visual system</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bowlby+One+SC&family=Courier+Prime:wght@400;700&family=Spline+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=202611110214">
+<link rel="stylesheet" href="css/style.css?v=202611110226">
 </head>
 <body>
 <header>
@@ -137,12 +137,13 @@
     </section>
     <section class="card tonnectome">
       <div class="cardHead"><h2 class="heroTitle">The Tonnectome</h2>
-        <p class="lead">The fly's ears listen to its eyes. Everything the instrument plays goes into a model of the fly's antennae and early auditory network, wired from the FlyWire connectome. Below is what it hears, drawn two ways; send either picture back into the eye and sight becomes sound becomes sight again.</p></div>
+        <p class="lead">The fly's ears listen to its eyes. Everything the instrument plays goes into a model of the fly's antennae and early auditory network, wired from the FlyWire connectome. Below is what it hears: a cochleogram, and a picture you choose from several. Each one maps the ear model's outputs faithfully, drawn differently. Send the picture back into the eye and sight becomes sound becomes sight again.</p></div>
       <div class="tnRow">
         <figure class="tnFig"><canvas id="tnCoch" width="720" height="260"></canvas>
           <figcaption>What each antenna picks up: 40 Hz to 1.6 kHz, low at the bottom, time running right to left over 2.4 s.</figcaption></figure>
-        <figure class="tnFig"><canvas id="tnBrain" width="560" height="260"></canvas>
-          <figcaption><span class="tk" style="color:#4fb3a4">●</span> Johnston's organ (the ear) <span class="tk" style="color:#e0c35a">●</span> 2nd <span class="tk" style="color:#e88a4f">●</span> 3rd <span class="tk" style="color:#e2576b">●</span> 4th step into the brain · frontal view, each dot a neuron where it sits, bright when active</figcaption></figure>
+        <figure class="tnArtFig"><canvas id="tnArt" width="420" height="420"></canvas>
+          <div class="tnViews" id="tnViews"></div>
+          <figcaption id="tnViewNote"></figcaption></figure>
       </div>
       <div class="ctlGrid">
         <div class="grp"><h3>The ears hear</h3>
@@ -150,7 +151,7 @@
           <label>level <input type="range" id="tnLevel" min="0" max="3" step="0.05" value="1"><output></output></label>
           <p class="hint" id="tnNote">loading the auditory connectome…</p></div>
         <div class="grp"><h3>Back into the eye</h3>
-          <label>picture <select id="tnView"><option value="coch">what the antennae hear (scrolls across the eye)</option><option value="brain">the auditory network, lit up</option></select></label>
+          <p class="hint">The picture above, whichever view is chosen, is what the eye gets: as brightness only, since photoreceptors see no colour here.</p>
           <label>mix into the stimulus <input type="range" id="tnMix" min="0" max="1" step="0.05" value="0"><output>0.00</output></label>
           <p class="hint">Or choose <i>what the fly hears</i> as the stimulus. The loop runs through the instrument, so its volume, tempo and strings all change what comes back.</p></div>
         <div class="grp"><h3>Auditory network</h3>
@@ -234,14 +235,14 @@
   </section>
 </main>
 <div id="tip" class="tip" role="tooltip"></div>
-<script>window.FH_V = '202611110214';  /* build stamp, set by tools/stamp.py: versions workers, worklet and data too */</script>
-<script src="js/info.js?v=202611110214"></script>
-<script src="js/stimuli.js?v=202611110214"></script>
-<script src="js/eyegeom.js?v=202611110214"></script>
-<script src="js/ear-net.js?v=202611110214"></script>
-<script src="js/tonnectome.js?v=202611110214"></script>
-<script src="js/audio.js?v=202611110214"></script>
-<script src="js/app.js?v=202611110214"></script>
-<script type="module" src="js/lobe.js?v=202611110214"></script>
+<script>window.FH_V = '202611110226';  /* build stamp, set by tools/stamp.py: versions workers, worklet and data too */</script>
+<script src="js/info.js?v=202611110226"></script>
+<script src="js/stimuli.js?v=202611110226"></script>
+<script src="js/eyegeom.js?v=202611110226"></script>
+<script src="js/ear-net.js?v=202611110226"></script>
+<script src="js/tonnectome.js?v=202611110226"></script>
+<script src="js/audio.js?v=202611110226"></script>
+<script src="js/app.js?v=202611110226"></script>
+<script type="module" src="js/lobe.js?v=202611110226"></script>
 </body>
 </html>
