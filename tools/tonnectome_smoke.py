@@ -11,12 +11,13 @@ async def main(out):
             pg.on('pageerror', lambda e: errs.append(f'pageerror: {e}')); pg.on('console', lambda m: errs.append(f'{m.type}: {m.text}') if m.type == 'error' else None)
             await pg.goto('http://localhost:8796/index.html', wait_until='networkidle')
             await pg.wait_for_function('document.getElementById("status").textContent.includes("neurons")', timeout=60000)
+            await pg.evaluate("(() => { const b = document.getElementById('begin'); if (b) b.remove(); document.querySelectorAll('#panels .panel').forEach(p => p.classList.add('on')); document.getElementById('drawer').classList.add('open'); })()")  # tests: no opening card, every drawer tab shown
             await pg.evaluate("document.querySelector('.lobeBox').style.display = 'none'")
             await pg.select_option('#kind', 'flash'); await pg.click('#go')
             await pg.wait_for_timeout(8000)
             st = await pg.evaluate('({attached: Tonnectome.attached, frames: Tonnectome.frames, active: Tonnectome.rates ? Array.from(Tonnectome.rates).filter(v => v > 0.02).length : -1, notes: window.__flyharp.stats.notes})')
             print('instrument -> ear:', st, '|', await pg.text_content('#tnNote'))
-            await pg.locator('.tonnectome').screenshot(path=f'{out}/tn_card.png')
+            await pg.locator('.hears').screenshot(path=f'{out}/tn_card.png')
             # the ear back into the eye
             await pg.select_option('#kind', 'ear'); await pg.click('.lens >> text=Photoreceptors'); await pg.wait_for_timeout(5000)
             await pg.locator('.heroEye').screenshot(path=f'{out}/tn_eye_coch.png')

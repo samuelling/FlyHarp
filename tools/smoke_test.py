@@ -14,6 +14,7 @@ async def main(out):
             pg.on('pageerror', lambda e: errs.append(f'pageerror: {e}'))
             await pg.goto('http://localhost:8777/index.html', wait_until='networkidle')
             await pg.wait_for_function('document.getElementById("status").textContent.includes("neurons")', timeout=60000)
+            await pg.evaluate("(() => { const b = document.getElementById('begin'); if (b) b.remove(); document.querySelectorAll('#panels .panel').forEach(p => p.classList.add('on')); document.getElementById('drawer').classList.add('open'); })()")  # tests: no opening card, every drawer tab shown
             print(await pg.text_content('#status'))
             await pg.click('#go'); await pg.wait_for_timeout(500)
             print('feedback info', await pg.evaluate('JSON.stringify(window.__flyharp.fbInfo)'))
@@ -40,7 +41,7 @@ async def main(out):
             a0 = json.loads(await pg.evaluate('JSON.stringify(window.__flyharp.stats)'))
             print('solo lobula plate, by layer', [x - y for x, y in zip(a0['byGroup'], b0['byGroup'])])
             # every engine on the lamina, check the audio graph stays alive
-            for eng in ['pad', 'modal', 'pluck', 'fm', 'glass', 'click']:
+            for eng in ['bowedpad', 'marimba', 'harp', 'fmbell', 'glass', 'click', 'organ', 'shimmer', 'choir', 'flute', 'drum', 'shaker', 'synthpluck']:
                 await pg.select_option('#hier .area[data-g="4"] .eng', eng); await pg.wait_for_timeout(1200)
             print('audio running:', await pg.evaluate('Sound.running()'))
             await pg.click('#hier .area[data-g="4"] .solo')

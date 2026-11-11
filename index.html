@@ -6,7 +6,7 @@
 <title>FlyHarp · a synthesizer played by the fly visual system</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bowlby+One+SC&family=Courier+Prime:wght@400;700&family=Spline+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=202611110307">
+<link rel="stylesheet" href="css/style.css?v=202611111132">
 </head>
 <body>
 <header>
@@ -58,32 +58,9 @@
         <div class="lensTag" id="lensTag"></div>
         <figure class="raw"><canvas id="raw" width="200" height="150"></canvas><figcaption>what you see</figcaption></figure>
       </div>
-      <section class="card stimbar" aria-label="Stimulus">
-      <h3>What the eye is shown</h3>
-      <div class="stimGrid">
-      <label>stimulus
-        <select id="kind">
-          <option value="webcam" selected>webcam</option>
-          <option value="grating">drifting grating</option>
-          <option value="edge">moving edge</option>
-          <option value="bar">moving bar</option>
-          <option value="loom">looming disk</option>
-          <option value="dots">drifting dots</option>
-          <option value="flash">full-field flashes</option>
-          <option value="paint">draw on the eye</option>
-          <option value="ear">what the fly hears (The Tonnectome)</option>
-        </select></label>
-      <label>contrast <input type="range" id="contrast" min="0.05" max="1" step="0.05" value="0.8"><output></output></label>
-      <label>size <input type="range" id="size" min="2" max="16" step="1" value="8"><output></output></label>
-      <label>speed <input type="range" id="speed" min="0.1" max="4" step="0.1" value="1"><output></output></label>
-      <label>direction <input type="range" id="direction" min="0" max="345" step="15" value="0"><output></output></label>
-      <label class="row">polarity
-        <span class="seg"><button data-pol="1">ON</button><button data-pol="-1" class="on">OFF</button></span></label>
-      <label>light level <input type="range" id="light" min="-4" max="1.5" step="0.25" value="0"><output></output></label></div>
-    </section>
       </div>
       <div class="lensPanel">
-        <h2 class="heroTitle">What the fly sees</h2>
+        <h2 class="heroTitle">What its Connectome Sees</h2>
         <p class="lead">Your camera, through 721 ommatidia. Then follow the image down the fly's visual system: each lens shows the same scene as one stage of the optic lobe represents it, live.</p>
         <div id="lenses" class="lenses"></div>
         <div class="lensInfo" id="lensInfo"></div>
@@ -94,15 +71,97 @@
         <p class="hint" id="eyehint"></p>
       </div>
     </section>
-    <section class="card instrument">
-      <div class="cardHead"><h2 class="heroTitle">The instrument</h2>
-        <p class="lead">How the simulation is played: which cells are strings, how they are tuned and voiced, and what you hear.</p></div>
+    <section class="hears">
+      <div class="hearsHead"><h2 class="heroTitle">What its Connectome Hears</h2>
+        <p class="lead">The fly's ears listen to its eyes: everything the instrument plays goes into a model of its antennae and early auditory network, wired from FlyWire. Pick a picture of what it hears; send it back into the eye from the <b>Hearing</b> tab.</p></div>
+      <div class="tnRow">
+        <figure class="tnFig"><canvas id="tnCoch" width="720" height="260"></canvas>
+          <figcaption>What each antenna picks up: 40 Hz to 1.6 kHz, low at the bottom, time running right to left over 2.4 s.</figcaption></figure>
+        <figure class="tnArtFig"><canvas id="tnArt" width="420" height="420"></canvas>
+          <div class="tnViews" id="tnViews"></div>
+          <figcaption id="tnViewNote"></figcaption></figure>
+      </div>
+      <figure class="rollbox">
+      <canvas id="roll" width="1180" height="260"></canvas>
+      <figcaption class="legend"><span><i class="sw fill"></i>depolarisation</span><span><i class="sw hollow"></i>hyperpolarisation (octave down, swells in)</span><span class="muted">bands: each area's pitch range · time runs right → left</span></figcaption>
+    </figure>
+    </section>
+    <section class="lobeBox">
+      <div class="lobeHead">
+        <h2 class="heroTitle">Inside the optic lobe</h2>
+        <p class="lead">Every neuron in the model as a ball, the strongest synapses as sticks, lit live by the same simulation that plays the notes. Drag to turn, pinch or scroll to zoom, hover a ball to name it.</p>
+      </div>
+      <div class="lobeWrap" id="lobeWrap">
+        <canvas id="lobe"></canvas>
+        <div id="lobeLabels"></div>
+        <div class="lobeTools"><button class="small on" id="lobeSpin">spin</button><button class="small on" id="lobeSticks">synapses</button><button class="small" id="lobeView">3/4 view</button><button class="small" id="lobeSide">side view</button></div>
+        <div class="lobeTip" id="lobeTip"></div>
+        <div class="lobeCount" id="lobeCount">loading the network…</div>
+      </div>
+      <figcaption class="legend"><span><i class="dot" style="background:#ffb44f"></i>depolarised</span><span><i class="dot" style="background:#4f9cff"></i>hyperpolarised</span><span><i class="sw" style="background:#ffae42"></i>synapse pushing its target up</span><span><i class="sw" style="background:#6a7dff"></i>pushing it down</span><span class="muted">sticks fade toward the cell they drive · layout is schematic: each area is a curved sheet of the eye's 721 columns, cell types in sublayers, the map flipped by each optic chiasm</span></figcaption>
+    </section>
+    <figure>
+      <canvas id="cascade" width="1180" height="432"></canvas>
+      <figcaption class="legend"><span><i class="grad"></i>hyperpolarised · grey · depolarised (relative to a grey screen)</span><span><i class="ring"></i>pluck</span><span><i class="ring dash"></i>hyperpolarisation pluck</span><span class="muted">bright = strung · click a map to string it · hover for what each cell does</span></figcaption>
+    </figure>
+    <details class="about">
+      <summary>What am I hearing?</summary>
+      <p>The network is the connectome-constrained model of the fly optic lobe by Lappalainen et al. (Nature 2024), the best of their 50-model ensemble.
+        It has 45,669 neurons in 65 cell types and 1.45 million synapses, with wiring from the FIB-SEM connectome and
+        unmeasured cell and synapse parameters fit so the network computes optic flow. It runs here in your browser, step by step
+        (20 ms of fly time per step), driven by the stimulus or your camera through the photoreceptors.</p>
+      <p>Each "string" is a cell type. When its depolarisation in a region of the eye rises past threshold, relative to
+        that type's own response range, it plucks a note. Pitch follows depth in the visual system: retina lowest, lamina,
+        medulla, transmedulla, then the T4/T5 motion detectors highest. Pan follows the region's position on the eye, and loudness the size of the response.
+        Every strung cell type has two strings: one for depolarisation and one for hyperpolarisation. The hyperpolarisation string plays an octave lower, darker, with a reversed envelope that swells in, so light-off and light-on responses sound like each other's shadow.
+        Feedback from the medulla to the lamina is heard as timbre. In the model, about 40% of the synaptic weight onto L1–L5 comes from medulla-resident cells
+        (C2, C3, Lawf and medulla interneurons contacting L-cell terminals). FlyHarp tracks that feedback current in each eye region: net inhibition damps the notes there, and net excitation brightens them.
+        Each area of the visual system is its own instrument family, and each cell type a variant of it. A cell's envelope follows its fitted membrane time constant, so fast cells click and slow cells swell.
+        Because the network has real integration time constants, a flash ripples through the layers over tens of milliseconds;
+        slowing the tempo stretches that ripple into a melody.</p>
+      <p>The trained network has no gain control of its own. It is linear above threshold, so its responses grow in proportion to light and contrast, and its surrounds subtract rather than divide.
+        The <i>Gain control</i> panel adds two stages that real fly eyes have and the model lacks: photoreceptors that adapt to their own mean light, and divisive normalization of the lamina and medulla by local contrast energy.
+        They are additions to the trained model, not part of it. The <i>Probe</i> panel measures what they do to any cell type.</p>
+      <p>The eye can be the model's idealized flat lattice or the real one. <i>Real eye</i> places each of the model's columns where a real ommatidium looks, from a micro-CT map of a whole fly head (Zhao et al., Nature 2025): finer along the equator and middle of the eye, coarser at the rim. The wiring stays the same, so the motion detectors' preferred directions bend with the eye, as they do in the fly.</p>
+      <p class="hint">Code and model export: github.com/samuelling/FlyHarp. Model: flyvis (TuragaLab). Eye map: Zhao et al. 2025, github.com/reiserlab/eyemap_T4.</p>
+    </details>
+  </section>
+</main>
+<aside id="drawer" class="drawer" aria-label="Controls">
+  <button id="menuBtn" class="drawerTab" aria-expanded="false" aria-controls="drawer" title="Controls (Tab)"><span class="grip" aria-hidden="true"></span><span class="tabWord">Controls</span><span class="grip" aria-hidden="true"></span></button>
+  <div class="drawerHead"><nav class="tabs" role="tablist">
+    <button data-tab="stimulus" class="on">Stimulus</button><button data-tab="instrument">Instrument</button><button data-tab="hearing">Hearing</button><button data-tab="model">Model</button>
+  </nav><button id="drawerClose" class="drawerClose" aria-label="Close controls">✕</button></div>
+  <div id="panels">
+    <section class="panel on" id="panel-stimulus">
+      <div class="grp"><h3>What the eye is shown</h3>
+      <label>stimulus
+        <select id="kind">
+          <option value="webcam" selected>webcam</option>
+          <option value="grating">drifting grating</option>
+          <option value="edge">moving edge</option>
+          <option value="bar">moving bar</option>
+          <option value="loom">looming disk</option>
+          <option value="dots">drifting dots</option>
+          <option value="flash">full-field flashes</option>
+          <option value="paint">draw on the eye</option>
+          <option value="ear">what its connectome hears</option>
+        </select></label>
+      <label>contrast <input type="range" id="contrast" min="0.05" max="1" step="0.05" value="0.8"><output></output></label>
+      <label>size <input type="range" id="size" min="2" max="16" step="1" value="8"><output></output></label>
+      <label>speed <input type="range" id="speed" min="0.1" max="4" step="0.1" value="1"><output></output></label>
+      <label>direction <input type="range" id="direction" min="0" max="345" step="15" value="0"><output></output></label>
+      <label class="row">polarity
+        <span class="seg"><button data-pol="1">ON</button><button data-pol="-1" class="on">OFF</button></span></label>
+      <label>light level <input type="range" id="light" min="-4" max="1.5" step="0.25" value="0"><output></output></label></div>
+    </section>
+    <section class="panel" id="panel-instrument">
       <div class="mixer">
       <p class="hint">Each area is an instrument family; each cell type a variant of it, with an envelope set by that cell's membrane time constant. Click chips, or the maps in the cascade, to string or unstring a cell type.</p>
       <div class="presetRow"><span class="presetLbl">instruments</span><div class="presets" id="ensembles"></div></div>
       <div class="presetRow"><span class="presetLbl">strings</span><div class="presets"><button data-pre="cascade">cascade</button><button data-pre="motion">motion</button><button data-pre="early">retina + lamina</button><button data-pre="all">all</button><button data-pre="none">none</button></div></div>
       <div id="hier"></div></div>
-      <div class="ctlGrid">
+      <div class="ctlStack">
         <div class="grp "><h3>Strings and time</h3>
       <label>tempo (× real fly time) <input type="range" id="tempo" min="0.05" max="1.5" step="0.05" value="0.35"><output></output></label>
       <p class="hint">Slow the fly down and each flash becomes an arpeggio: retina → lamina → medulla → lobula plate.</p>
@@ -131,22 +190,11 @@
       <label>MIDI out <select id="midiOut"><option value="">none</option></select></label>
       <label>MIDI channels <select id="midiCh"><option value="layer">per area: depol 1–5, hyperpol 6–10</option><option value="single">depol on 1, hyperpol on 2</option></select></label></div>
       </div>
-      <figure class="rollbox">
-      <canvas id="roll" width="1180" height="260"></canvas>
-      <figcaption class="legend"><span><i class="sw fill"></i>depolarisation</span><span><i class="sw hollow"></i>hyperpolarisation (octave down, swells in)</span><span class="muted">bands: each area's pitch range · time runs right → left</span></figcaption>
-    </figure>
+
     </section>
-    <section class="card tonnectome">
-      <div class="cardHead"><h2 class="heroTitle">The Tonnectome</h2>
-        <p class="lead">The fly's ears listen to its eyes. Everything the instrument plays goes into a model of the fly's antennae and early auditory network, wired from the FlyWire connectome. Below is what it hears: a cochleogram, and a picture you choose from several. Each one maps the ear model's outputs faithfully, drawn differently. Send the picture back into the eye and sight becomes sound becomes sight again.</p></div>
-      <div class="tnRow">
-        <figure class="tnFig"><canvas id="tnCoch" width="720" height="260"></canvas>
-          <figcaption>What each antenna picks up: 40 Hz to 1.6 kHz, low at the bottom, time running right to left over 2.4 s.</figcaption></figure>
-        <figure class="tnArtFig"><canvas id="tnArt" width="420" height="420"></canvas>
-          <div class="tnViews" id="tnViews"></div>
-          <figcaption id="tnViewNote"></figcaption></figure>
-      </div>
-      <div class="ctlGrid">
+    <section class="panel" id="panel-hearing">
+      <p class="hint">The Tonnectome loop: sight, then sound, then the fly's ears, then a picture, then back into the eye.</p>
+      <div class="ctlStack">
         <div class="grp"><h3>The ears hear</h3>
           <label>source <select id="tnSource"><option value="own">the instrument</option><option value="mic">the microphone</option><option value="both">both</option></select></label>
           <label>level <input type="range" id="tnLevel" min="0" max="3" step="0.05" value="1"><output></output></label>
@@ -161,29 +209,11 @@
         <div class="grp"><h3>What this model is</h3>
           <p class="hint">Wiring and transmitter signs are FlyWire's, measured. Nothing else is fitted. Johnston's organ neurons are tuned by subgroup (A high, B low, D broad; C and E sense sustained deflection, here the slow loudness), each normalized by the energy across its antenna. Downstream cells are a rate network with hand-set gain and time constants (5–60 ms by step).</p></div>
       </div>
+
     </section>
-    <section class="lobeBox">
-      <div class="lobeHead">
-        <h2 class="heroTitle">Inside the optic lobe</h2>
-        <p class="lead">Every neuron in the model as a ball, the strongest synapses as sticks, lit live by the same simulation that plays the notes. Drag to turn, pinch or scroll to zoom, hover a ball to name it.</p>
-      </div>
-      <div class="lobeWrap" id="lobeWrap">
-        <canvas id="lobe"></canvas>
-        <div id="lobeLabels"></div>
-        <div class="lobeTools"><button class="small on" id="lobeSpin">spin</button><button class="small on" id="lobeSticks">synapses</button><button class="small" id="lobeView">3/4 view</button><button class="small" id="lobeSide">side view</button></div>
-        <div class="lobeTip" id="lobeTip"></div>
-        <div class="lobeCount" id="lobeCount">loading the network…</div>
-      </div>
-      <figcaption class="legend"><span><i class="dot" style="background:#ffb44f"></i>depolarised</span><span><i class="dot" style="background:#4f9cff"></i>hyperpolarised</span><span><i class="sw" style="background:#ffae42"></i>synapse pushing its target up</span><span><i class="sw" style="background:#6a7dff"></i>pushing it down</span><span class="muted">sticks fade toward the cell they drive · layout is schematic: each area is a curved sheet of the eye's 721 columns, cell types in sublayers, the map flipped by each optic chiasm</span></figcaption>
-    </section>
-    <figure>
-      <canvas id="cascade" width="1180" height="432"></canvas>
-      <figcaption class="legend"><span><i class="grad"></i>hyperpolarised · grey · depolarised (relative to a grey screen)</span><span><i class="ring"></i>pluck</span><span><i class="ring dash"></i>hyperpolarisation pluck</span><span class="muted">bright = strung · click a map to string it · hover for what each cell does</span></figcaption>
-    </figure>
-    <section class="card model">
-      <div class="cardHead"><h2 class="heroTitle">The model</h2>
-        <p class="lead">What is being simulated: the eye, the trained optic-lobe network, and optional gain control around it. The trained network has none of its own: it is linear above threshold, so responses scale with light and contrast without limit, and its surrounds only subtract. The two gain-control stages are additions to the trained model. Probe any of it like a physiologist below.</p></div>
-      <div class="ctlGrid">
+    <section class="panel" id="panel-model">
+      <p class="hint">What is simulated: the eye, the trained optic-lobe network, and optional gain control around it. The trained network has none of its own (linear above threshold, subtractive surrounds); both gain-control stages are additions to it.</p>
+      <div class="ctlStack">
         <div class="grp "><h3>Eye</h3><label>eye geometry <select id="eyeGeom"><option value="lattice">idealized lattice (flyvis)</option><option value="real">real eye (micro-CT, Zhao et al. 2025)</option></select></label><p class="hint" id="geomHint">The flyvis eye is a flat, regular hex grid. The real eye places each column where a measured ommatidium looks.</p></div>
         <div class="grp "><h3>Network</h3><p class="hint">45,669 neurons, 65 cell types, 1.45M synapses: the best flyvis model (Lappalainen et al. 2024), stepped every 20 ms of fly time.</p><button id="reset" class="small">reset network</button></div>
         <div class="grp"><h3>Gain control · photoreceptors</h3>
@@ -211,30 +241,10 @@
       </div>
       <div class="probePlots" id="pPlots"></div>
     </section>
+
     </section>
-    <details class="about">
-      <summary>What am I hearing?</summary>
-      <p>The network is the connectome-constrained model of the fly optic lobe by Lappalainen et al. (Nature 2024), the best of their 50-model ensemble.
-        It has 45,669 neurons in 65 cell types and 1.45 million synapses, with wiring from the FIB-SEM connectome and
-        unmeasured cell and synapse parameters fit so the network computes optic flow. It runs here in your browser, step by step
-        (20 ms of fly time per step), driven by the stimulus or your camera through the photoreceptors.</p>
-      <p>Each "string" is a cell type. When its depolarisation in a region of the eye rises past threshold, relative to
-        that type's own response range, it plucks a note. Pitch follows depth in the visual system: retina lowest, lamina,
-        medulla, transmedulla, then the T4/T5 motion detectors highest. Pan follows the region's position on the eye, and loudness the size of the response.
-        Every strung cell type has two strings: one for depolarisation and one for hyperpolarisation. The hyperpolarisation string plays an octave lower, darker, with a reversed envelope that swells in, so light-off and light-on responses sound like each other's shadow.
-        Feedback from the medulla to the lamina is heard as timbre. In the model, about 40% of the synaptic weight onto L1–L5 comes from medulla-resident cells
-        (C2, C3, Lawf and medulla interneurons contacting L-cell terminals). FlyHarp tracks that feedback current in each eye region: net inhibition damps the notes there, and net excitation brightens them.
-        Each area of the visual system is its own instrument family, and each cell type a variant of it. A cell's envelope follows its fitted membrane time constant, so fast cells click and slow cells swell.
-        Because the network has real integration time constants, a flash ripples through the layers over tens of milliseconds;
-        slowing the tempo stretches that ripple into a melody.</p>
-      <p>The trained network has no gain control of its own. It is linear above threshold, so its responses grow in proportion to light and contrast, and its surrounds subtract rather than divide.
-        The <i>Gain control</i> panel adds two stages that real fly eyes have and the model lacks: photoreceptors that adapt to their own mean light, and divisive normalization of the lamina and medulla by local contrast energy.
-        They are additions to the trained model, not part of it. The <i>Probe</i> panel measures what they do to any cell type.</p>
-      <p>The eye can be the model's idealized flat lattice or the real one. <i>Real eye</i> places each of the model's columns where a real ommatidium looks, from a micro-CT map of a whole fly head (Zhao et al., Nature 2025): finer along the equator and middle of the eye, coarser at the rim. The wiring stays the same, so the motion detectors' preferred directions bend with the eye, as they do in the fly.</p>
-      <p class="hint">Code and model export: github.com/samuelling/FlyHarp. Model: flyvis (TuragaLab). Eye map: Zhao et al. 2025, github.com/reiserlab/eyemap_T4.</p>
-    </details>
-  </section>
-</main>
+  </div>
+</aside>
 <div id="begin" class="begin" role="dialog" aria-label="Start FlyHarp">
   <div class="beginCard">
     <div class="logo beginLogo" aria-hidden="true"><span class="ink">FLY<span class="lc">harp</span></span><span class="mis">FLY<span class="lc">harp</span></span></div>
@@ -245,14 +255,14 @@
   </div>
 </div>
 <div id="tip" class="tip" role="tooltip"></div>
-<script>window.FH_V = '202611110307';  /* build stamp, set by tools/stamp.py: versions workers, worklet and data too */</script>
-<script src="js/info.js?v=202611110307"></script>
-<script src="js/stimuli.js?v=202611110307"></script>
-<script src="js/eyegeom.js?v=202611110307"></script>
-<script src="js/ear-net.js?v=202611110307"></script>
-<script src="js/tonnectome.js?v=202611110307"></script>
-<script src="js/audio.js?v=202611110307"></script>
-<script src="js/app.js?v=202611110307"></script>
-<script type="module" src="js/lobe.js?v=202611110307"></script>
+<script>window.FH_V = '202611111132';  /* build stamp, set by tools/stamp.py: versions workers, worklet and data too */</script>
+<script src="js/info.js?v=202611111132"></script>
+<script src="js/stimuli.js?v=202611111132"></script>
+<script src="js/eyegeom.js?v=202611111132"></script>
+<script src="js/ear-net.js?v=202611111132"></script>
+<script src="js/tonnectome.js?v=202611111132"></script>
+<script src="js/audio.js?v=202611111132"></script>
+<script src="js/app.js?v=202611111132"></script>
+<script type="module" src="js/lobe.js?v=202611111132"></script>
 </body>
 </html>

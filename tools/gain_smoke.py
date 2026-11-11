@@ -14,6 +14,7 @@ async def main(out):
             pg.on('pageerror', lambda e: errs.append(f'pageerror: {e}'))
             await pg.goto('http://localhost:8778/index.html', wait_until='networkidle')
             await pg.wait_for_function('document.getElementById("status").textContent.includes("neurons")', timeout=60000)
+            await pg.evaluate("(() => { const b = document.getElementById('begin'); if (b) b.remove(); document.querySelectorAll('#panels .panel').forEach(p => p.classList.add('on')); document.getElementById('drawer').classList.add('open'); })()")  # tests: no opening card, every drawer tab shown
             await pg.click('#go'); await pg.wait_for_timeout(300)
             await pg.select_option('#kind', 'grating')
             async def notes(label, secs=5):

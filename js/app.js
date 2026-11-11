@@ -207,6 +207,35 @@
     } else { playing = false; Sound.allNotesOff(); $('go').textContent = '▶ Start'; $('go').classList.remove('playing'); }
   };
   const status = s => $('status').textContent = s;
+  // ---- the controls drawer (as in Frisky): tabs, a grab tab to tap or drag, open by default on wide screens
+  const drawer = $('drawer'), wide = () => matchMedia('(min-width: 1100px)').matches;
+  function setDrawer(open) {
+    drawer.classList.toggle('open', open); document.body.classList.toggle('drawer-open', open); $('menuBtn').setAttribute('aria-expanded', String(open));
+    // canvases sized from their containers follow the page as it narrows or widens
+    const t0 = performance.now(), step = () => { window.dispatchEvent(new Event('resize')); if (performance.now() - t0 < 380) requestAnimationFrame(step); }; requestAnimationFrame(step);
+  }
+  $('drawerClose').onclick = () => setDrawer(false);
+  document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
+    document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('on', x === b));
+    document.querySelectorAll('#panels .panel').forEach(pn => pn.classList.toggle('on', pn.id === 'panel-' + b.dataset.tab));
+    $('panels').scrollTop = 0;
+  });
+  {
+    const tab = $('menuBtn'); let drag = null;
+    tab.addEventListener('pointerdown', e => { e.preventDefault(); try { tab.setPointerCapture(e.pointerId); } catch (err) {} drag = {x0: e.clientX, w: drawer.getBoundingClientRect().width, open: drawer.classList.contains('open'), moved: false}; });
+    tab.addEventListener('pointermove', e => {
+      if (!drag) return;
+      const dx = e.clientX - drag.x0; if (Math.abs(dx) > 6) drag.moved = true; if (!drag.moved) return;
+      const off = Math.max(0, Math.min(drag.w, (drag.open ? 0 : drag.w) + dx));
+      drawer.classList.add('dragging'); drawer.style.transform = `translateX(${off}px)`; drag.off = off;
+    });
+    const end = () => { if (!drag) return; drawer.classList.remove('dragging'); drawer.style.transform = ''; setDrawer(drag.moved ? drag.off < drag.w * 0.5 : !drag.open); drag = null; };
+    tab.addEventListener('pointerup', end);
+    tab.addEventListener('pointercancel', () => { if (drag) { drawer.classList.remove('dragging'); drawer.style.transform = ''; drag = null; } });
+    tab.addEventListener('keydown', e => { if (e.code === 'Enter' || e.code === 'Space') { e.preventDefault(); setDrawer(!drawer.classList.contains('open')); } });
+  }
+  window.addEventListener('keydown', e => { if (e.code === 'Tab' && !e.target.closest('input, select, textarea, button, summary, a') && !e.target.closest('#drawer')) { e.preventDefault(); setDrawer(!drawer.classList.contains('open')); } });
+  setDrawer(wide());
   // click to begin: the first click is also the gesture that lets the browser start audio
   const dismissBegin = () => { $('begin').classList.add('gone'); setTimeout(() => $('begin').remove(), 300); };
   $('beginGo').onclick = async () => { dismissBegin(); if (!playing) await $('go').onclick(); };

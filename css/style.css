@@ -86,14 +86,14 @@ figcaption{line-height:1.6}
 #fbMeter{width:100%;height:auto;margin-top:4px;background:#0f1115}
 
 .hero{display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap;margin-bottom:16px}
-.heroLeft{flex:0 1 640px;min-width:300px;display:flex;flex-direction:column;gap:14px}
+.heroLeft{flex:1 1 460px;max-width:640px;min-width:300px;display:flex;flex-direction:column;gap:14px}
 .heroEye{position:relative}
 .heroEye #eye{width:100%;border-radius:16px;background:radial-gradient(circle at 50% 45%,#15171c,#07080a 70%)}
 .lensTag{position:absolute;left:14px;top:12px;font-size:12px;color:#cfccc4;background:#0b0c0fcc;border:1px solid var(--line);border-radius:12px;padding:3px 10px;pointer-events:none}
 .raw{position:absolute;right:12px;bottom:12px;margin:0;width:150px}
 .raw canvas{width:150px;border-radius:8px;border:1px solid #333845}
 .raw figcaption{font-size:10.5px;text-align:right;margin-top:2px}
-.lensPanel{flex:1 1 380px;min-width:300px;max-width:580px}
+.lensPanel{flex:1 1 320px;min-width:280px;max-width:580px}
 .heroTitle{font-size:28px;margin:4px 0 6px;letter-spacing:-.01em;font-weight:650}
 .lead{color:#bdbab2;margin:0 0 14px;font-size:14.5px}
 .lenses{position:relative;display:grid;grid-template-columns:66px minmax(0,1fr) minmax(0,1fr) 92px;grid-template-rows:repeat(4,auto);column-gap:10px;row-gap:22px;margin-bottom:14px;align-items:center}
@@ -198,3 +198,39 @@ label.small{font-size:12.5px;margin:3px 0}
 .presetRow{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
 .presetLbl{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);min-width:84px}
 .presets button.on{color:var(--acc);border-color:var(--acc)}
+
+/* ---------- the controls drawer (as in Frisky) ----------
+   Slides in from the right, with a vertical grab tab on its edge that stays in view: tap or drag it.
+   Phones: it covers nearly the whole screen. Wide screens: a side panel, and the page narrows to make way. */
+.drawer{position:fixed;z-index:30;right:0;top:0;bottom:0;width:calc(100% - 34px);display:flex;flex-direction:column;background:#111317;border-left:1px solid var(--line);box-shadow:-8px 0 30px #0009;transform:translateX(100%);transition:transform .32s cubic-bezier(.2,.8,.2,1);will-change:transform}
+.drawer.open{transform:none}
+.drawer.dragging{transition:none}
+.drawerHead{display:flex;align-items:stretch;gap:4px;padding:6px 8px 0 4px;border-bottom:1px solid var(--line);flex:none}
+.tabs{display:flex;flex:1}
+.tabs button{flex:1;border:0;background:transparent;color:var(--muted);padding:10px 2px 9px;font:inherit;font-size:13.5px;cursor:pointer}
+.tabs button.on{color:var(--acc);box-shadow:inset 0 -2px 0 var(--acc)}
+.drawerClose{align-self:center;border:0;background:#2a2d35;color:var(--ink);width:28px;height:28px;border-radius:50%;font-size:13px;cursor:pointer;flex:none}
+#panels{flex:1;min-height:0;overflow-y:auto;padding:12px 14px 40px;overscroll-behavior:contain}
+.panel{display:none}.panel.on{display:block}
+.ctlStack{display:flex;flex-direction:column;gap:10px;margin-top:10px}
+.drawer .grp label input[type=range]{max-width:none}
+.drawer .mixer #hier{grid-template-columns:1fr}
+.drawer .presetRow{align-items:center}.drawer .presetLbl{min-width:0;width:100%}
+.drawer .probe{margin-top:14px}.drawer .probe .heroTitle{font-size:18px}
+.drawer .probePlots{grid-template-columns:1fr}
+.drawerTab{position:absolute;left:-34px;top:calc(50% - 66px);width:34px;height:132px;padding:10px 0;border:1px solid #3a3e48;border-right:0;border-radius:14px 0 0 14px;background:linear-gradient(90deg,#1b1d23,#111317);color:var(--acc);display:flex;flex-direction:column;align-items:center;justify-content:space-between;box-shadow:-6px 0 16px #0007;cursor:grab;touch-action:none}
+.drawerTab:active{cursor:grabbing}
+.tabWord{writing-mode:vertical-rl;transform:rotate(180deg);font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
+.grip{width:4px;height:18px;border-left:2px solid #6a5a40;border-right:2px solid #6a5a40;opacity:.9}
+.drawer.open .drawerTab{color:var(--ink)}
+@media (min-width:1100px){
+  .drawer{width:clamp(360px,30vw,460px);box-shadow:none}
+  main,header{transition:margin-right .32s cubic-bezier(.2,.8,.2,1)}
+  body.drawer-open main,body.drawer-open header{margin-right:calc(clamp(360px,30vw,460px) + 34px)}
+}
+/* the grab tab sits on the page's right edge: keep content clear of it */
+@media (min-width:700px){main,header{padding-right:34px}}
+/* what its connectome hears */
+.hears{margin:4px 0 22px}
+.hearsHead .lead{max-width:880px}
+.hears .rollbox{margin-top:10px}
