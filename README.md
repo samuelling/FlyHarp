@@ -17,6 +17,10 @@ A synthesizer played by the *Drosophila* visual system. A stimulus (or your webc
   - **Medulla → lamina feedback.**
 
   The outer two rings of the eye are shown but not used as signal, because the model truncates their inputs.
+- **Eye geometry.** By default the eye is flyvis's idealization: a flat, regular hex grid with every column the same size. *Real eye* maps the same 721 columns onto the measured viewing directions of a right eye's ommatidia (whole-head micro-CT, Zhao et al., *Nature* 2025; `tools/eyemap_import.py` reads their published eye map from github.com/reiserlab/eyemap_T4 into `data/eyemap.json`). 712 of the model's columns land on real ommatidia; the 9 beyond the measured rim are extrapolated, kept in the network, and not drawn. The network and its wiring are unchanged, since the fly also wires by lattice neighbours. What changes is where each column looks:
+  - **Sampling:** the median interommatidial angle is 4.8° (10th–90th percentile 3.9–6.5°). It is finest along the equator and the central meridian, so stimuli and the camera are sampled densely there and coarsely at the rim. The eye is drawn in an azimuthal-equidistant projection about the centre column, each facet where it looks.
+  - **Motion:** the T4/T5 read-out is computed in lattice coordinates and turned into world directions through each column's local lattice-to-world Jacobian. Preferred directions therefore bend across the eye, as Zhao et al. found for real T4 cells, without any change to the cells.
+  - **Orientation:** in flyvis's training images +y is up and +x is anterior; its T4 subtypes agree (T4a front-to-back, T4b back-to-front, T4c up, T4d down). FlyHarp now draws the eye and samples the camera with that orientation. Earlier versions fed the camera upside down relative to training and drew the eye flipped to match.
 - **The strings.** Each string is a cell type, optionally split into 7 regions of the eye. It plucks when its depolarization relative to grey rises past a threshold, measured in units of that type's own response range. It re-arms once it falls back below.
 - **Pitch** follows depth in the visual system: retina lowest, then lamina, medulla, transmedulla and T4/T5 highest. Within a layer, strings climb the chosen scale. **Pan** follows the region's position on the eye, and **loudness** follows response size.
 - **Tempo** slows fly time relative to real time, so the cascade's real latencies become audible arpeggios.
@@ -37,6 +41,7 @@ A synthesizer played by the *Drosophila* visual system. A stimulus (or your webc
 index.html  css/style.css
 js/engine.js         the network (shared by the worker and Node tests)
 js/gain.js           optional photoreceptor adaptation and divisive normalization
+js/eyegeom.js        eye geometry: idealized lattice or measured eye; facets and lattice-to-world Jacobians
 js/probe.js, js/probe-worker.js  in-silico physiology: contrast, size and light-level tuning
 js/worker.js         simulation + per-type, per-region activity + response calibration
 js/stimuli.js        stimuli and webcam on the hex eye
@@ -48,6 +53,8 @@ data/fly.json        exported model
 tools/export_model.py   export from flyvis (pip install flyvis; flyvis download-pretrained)
 tools/precompute_directions.js  measure T4/T5 preferred directions into data/fly.json
 tools/fit_motion_decoder.js     fit the T4/T5 → direction read-out into data/fly.json
+tools/eyemap_import.py          map the model's columns onto the measured eye (Zhao et al. 2025) → data/eyemap.json
+data/eyemap.json                viewing direction of each model column on the real eye
 tools/gain_smoke.py             headless check of the gain-control stages and the probe
 tools/lens_test.py   screenshot each eye lens for a moving edge
 tools/validate_engine.js  compare the JS engine with a PyTorch reference trace

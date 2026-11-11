@@ -69,6 +69,7 @@
       <label>direction <input type="range" id="direction" min="0" max="345" step="15" value="0"><output></output></label>
       <label class="row">polarity
         <span class="seg"><button data-pol="1">ON</button><button data-pol="-1" class="on">OFF</button></span></label>
+      <label>eye geometry <select id="eyeGeom"><option value="lattice">idealized lattice (flyvis)</option><option value="real">real eye (micro-CT, Zhao et al. 2025)</option></select></label>
       <label>light level <input type="range" id="light" min="-4" max="1.5" step="0.25" value="0"><output></output></label>
     </section>
     <section>
@@ -199,13 +200,15 @@
       <p>The trained network has no gain control of its own. It is linear above threshold, so its responses grow in proportion to light and contrast, and its surrounds subtract rather than divide.
         The <i>Gain control</i> panel adds two stages that real fly eyes have and the model lacks: photoreceptors that adapt to their own mean light, and divisive normalization of the lamina and medulla by local contrast energy.
         They are additions to the trained model, not part of it. The <i>Probe</i> panel measures what they do to any cell type.</p>
-      <p class="hint">Code and model export: github.com/samuelling/FlyHarp. Model: flyvis (TuragaLab).</p>
+      <p>The eye can be the model's idealized flat lattice or the real one. <i>Real eye</i> places each of the model's columns where a real ommatidium looks, from a micro-CT map of a whole fly head (Zhao et al., Nature 2025): finer along the equator and middle of the eye, coarser at the rim. The wiring stays the same, so the motion detectors' preferred directions bend with the eye, as they do in the fly.</p>
+      <p class="hint">Code and model export: github.com/samuelling/FlyHarp. Model: flyvis (TuragaLab). Eye map: Zhao et al. 2025, github.com/reiserlab/eyemap_T4.</p>
     </details>
   </section>
 </main>
 <div id="tip" class="tip" role="tooltip"></div>
 <script src="js/info.js"></script>
 <script src="js/stimuli.js"></script>
+<script src="js/eyegeom.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/app.js"></script>
 <script type="module" src="js/lobe.js"></script>

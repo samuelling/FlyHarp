@@ -76,7 +76,7 @@ const Stimuli = (() => {
         const s = (Math.min(w, h) / 2 - 1) / R;
         for (let i = 0; i < nC; i++) {
           // box filter: average a 3x3 patch around each ommatidium's position (mirrored like a selfie)
-          const cx = Math.round(w / 2 - X[i] * s), cy = Math.round(h / 2 + Y[i] * s);
+          const cx = Math.round(w / 2 - X[i] * s), cy = Math.round(h / 2 - Y[i] * s);   // +Y is up (dorsal), as in flyvis training
           let acc = 0, n = 0;
           for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
             const xx = Math.min(w - 1, Math.max(0, cx + dx)), yy = Math.min(h - 1, Math.max(0, cy + dy)), o = 4 * (yy * w + xx);

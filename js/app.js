@@ -29,6 +29,14 @@
   let simT = 0, acc = 0, lastNow = performance.now(), busy = false, ready = false, playing = false;
   let lastLum = new Float32Array(721).fill(0.5), lastPR = null, lastDV = null, rings = [], tokens = 24;
   const worker = new Worker('js/worker.js');
+  // eye geometry (js/eyegeom.js): the idealized lattice, or the measured eye (Zhao et al. 2025)
+  let G = null, eyemap = null;
+  const eyemapP = fetch('data/eyemap.json').then(r => r.json()).then(j => eyemap = j).catch(() => null);
+  function setGeometry(mode) {
+    G = EyeGeom.build(mode === 'real' && eyemap ? 'real' : 'lattice', X, Y, u, v, eyemap);
+    edge = X.map((_, i) => Math.max(Math.abs(u[i]), Math.abs(v[i]), Math.abs(u[i] + v[i])) >= 14 || !G.real[i]);
+    Stimuli.init(G.DX, G.DY); fineX = null; lensMax = {};
+  }
 
   // ---------------------------------------------------------------- controls
   for (const id of ['contrast', 'size', 'speed', 'direction']) bindRange(id, v => P[id] = v);
@@ -272,11 +280,14 @@
       nbr = m.x.map((x, i) => m.x.map((x2, j) => j).filter(j => (m.x[j] - x) ** 2 + (m.y[j] - m.y[i]) ** 2 < 1.1));
       // the outer two rings of the eye lack part of their inputs in the model: shown, but not as signal
       edge = m.x.map((x, i) => Math.max(Math.abs(u[i]), Math.abs(v[i]), Math.abs(u[i] + v[i])) >= 14);
+      setGeometry('lattice');
       renderLenses();
       if (fbInfo) $('fbHint').innerHTML = `Medulla → lamina feedback shapes the timbre. In this model ${(100 * fbInfo.fraction).toFixed(0)}% of the synaptic weight onto L1–L5 comes from medulla-resident cells (${fbInfo.sources.slice(0, 4).map(([k]) => k).join(', ')}…). Net inhibitory feedback damps notes (darker, shorter); net excitatory feedback brightens them.`;
       const order = types.map((t, i) => [m.tau[i], t]).sort((a, b) => a[0] - b[0]);
       order.forEach(([, t], r) => tauRank[t] = r / (order.length - 1));
-      Stimuli.init(X, Y); layoutCascade(); ready = true; applyPreset('cascade'); sendGain(); setupProbe();
+      layoutCascade(); ready = true;
+      eyemapP.then(() => { if (!eyemap) $('eyeGeom').disabled = true; else if ($('eyeGeom').value === 'real') setGeometry('real'); });
+      $('eyeGeom').onchange = () => { setGeometry($('eyeGeom').value); $('eyehint').textContent = G.mode === 'real' ? `The measured eye: ${eyemap.ommatidia} ommatidia, ${eyemap.median_dphi_deg.toFixed(1)}° apart on average, finest along the equator. Each facet is drawn where it looks (azimuthal-equidistant projection about the centre column); the network and its wiring are unchanged.` : ''; }; applyPreset('cascade'); sendGain(); setupProbe();
       if (P.kind === 'webcam') useCamera();
       window.FlyHarp = {types, X, Y, nodeOf, scale, groupOf, N: m.N, nE: m.nE, dv: () => lastDV,
         requestEdges: k => worker.postMessage({cmd: 'edges', k})};
@@ -385,7 +396,7 @@
   }
   new ResizeObserver(() => drawWires(new Set([lens, ...LENS_UP[lens]]))).observe($('lenses'));
   let lens = 'motion', prefDir = {}, decoder = null, lastFbc = null;
-  const lensMax = {};
+  let lensMax = {};
   function renderLenses() {
     const lit = new Set([lens, ...LENS_UP[lens]]);
     $('lenses').innerHTML = LENS_STAGES.map((t, i) => `<span class="stage" style="grid-row:${i + 1}">${t}</span>`).join('') +
@@ -404,7 +415,7 @@
     if (lens === 'motion') {
       el.innerHTML = '<canvas id="wheel" width="44" height="44"></canvas><span>direction on the eye (hue) · brighter = stronger motion signal</span>';
       const c = $('wheel').getContext('2d');
-      for (let a = 0; a < 360; a += 3) { c.fillStyle = `hsl(${a},80%,58%)`; c.beginPath(); c.moveTo(22, 22); c.arc(22, 22, 21, a * Math.PI / 180, (a + 4) * Math.PI / 180); c.fill(); }
+      for (let a = 0; a < 360; a += 3) { c.fillStyle = `hsl(${a},80%,58%)`; c.beginPath(); c.moveTo(22, 22); c.arc(22, 22, 21, -(a + 4) * Math.PI / 180, -a * Math.PI / 180); c.fill(); }   // hue = direction, counter-clockwise from rightward, up = up
       c.fillStyle = '#16181d'; c.beginPath(); c.arc(22, 22, 9, 0, 2 * Math.PI); c.fill();
     } else if (lens === 'photo') el.innerHTML = '<i class="grad" style="background:linear-gradient(90deg,#000,#fff)"></i><span>dark → bright</span>';
     else if (lens === 'feedback') el.innerHTML = '<i class="grad" style="background:linear-gradient(90deg,#7f8cff,#202228 50%,#f0c75a)"></i><span>net inhibitory · none · net excitatory</span>';
@@ -413,7 +424,9 @@
   $('underlay').onchange = () => {}; $('arrows').onchange = () => {};
 
   const eye = $('eye'), ex = eye.getContext('2d');
-  function eyeScale() { return (eye.width / 2 - 18) / 15.5; }
+  function eyeScale() { return (eye.width / 2 - 18) / ((G ? G.R : 15) + 0.6); }
+  // facet i as drawn: its polygon from the eye geometry (+y up on the eye, so flip for the canvas)
+  const facetPath = (i, cx, cy, s) => { const p = G.poly; ex.beginPath(); for (let k = 0; k < 6; k++) { const x = cx + p[12 * i + 2 * k] * s, y = cy - p[12 * i + 2 * k + 1] * s; k ? ex.lineTo(x, y) : ex.moveTo(x, y); } ex.closePath(); };
   const hexPath = (x, y, r) => { ex.beginPath(); for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3; i ? ex.lineTo(x + r * Math.cos(a), y + r * Math.sin(a)) : ex.moveTo(x + r * Math.cos(a), y + r * Math.sin(a)); } ex.closePath(); };
   const lerp = (a, b, t) => a + (b - a) * t;
   function divColor(v) { // blue · dark grey · orange
@@ -446,6 +459,9 @@
       const [c, s, sc] = decoder ? [decoder[t][0], decoder[t][1], 1] : [Math.cos(prefDir[t]), Math.sin(prefDir[t]), scale[ti]];
       for (let k = 0; k < n; k++) { const d = lastDV[arr[k]] / sc; if (d > 0) { vx[k] += d * c; vy[k] += d * s; } }
     }
+    // into world directions: the read-out is in lattice coordinates; the eye maps the lattice onto the world
+    const J = G.J;
+    for (let k = 0; k < n; k++) { const a = vx[k], b = vy[k]; vx[k] = J[4 * k] * a + J[4 * k + 1] * b; vy[k] = J[4 * k + 2] * a + J[4 * k + 3] * b; }
     let mx = 1e-6; const mags = new Float32Array(n);
     for (let k = 0; k < n; k++) { mags[k] = Math.hypot(vx[k], vy[k]); }
     const srt = Array.from(mags).sort((a, b) => a - b); mx = Math.max(srt[Math.floor(0.98 * (n - 1))], 1e-6);
@@ -461,8 +477,9 @@
     const vals = lens === 'photo' || lens === 'motion' ? null : lensValues();
     const mf = lens === 'motion' ? motionField() : null;
     for (let i = 0; i < X.length; i++) {
+      if (!G.real[i]) continue;   // model columns beyond the measured eye (a few at the rim): not drawn
       // the photoreceptor lens shows what the photoreceptors signal: the adapted contrast image when adaptation is on
-      const x = cx + X[i] * s, y = cy + Y[i] * s, g = Math.min(255, ((lens === 'photo' && lastPR) ? lastPR[i] : lastLum[i]) * 255);
+      const g = Math.min(255, ((lens === 'photo' && lastPR) ? lastPR[i] : lastLum[i]) * 255);
       let col;
       if (lens === 'photo') col = [g, g, g];
       else if (mf) {
@@ -475,7 +492,7 @@
         col = [lerp(base, c[0], t), lerp(base, c[1], t), lerp(base, c[2], t)];
       }
       ex.fillStyle = `rgb(${col[0] | 0},${col[1] | 0},${col[2] | 0})`;
-      hexPath(x, y, r); ex.fill();
+      facetPath(i, cx, cy, s); ex.fill();
     }
     // facet sheen: a soft highlight like light on the cornea
     const grd = ex.createRadialGradient(cx - eye.width * 0.18, cy - eye.height * 0.22, 10, cx, cy, eye.width * 0.55);
@@ -488,14 +505,14 @@
         let ax = 0, ay = 0, nn = 0;
         for (const j of nbr[i]) { ax += mf.vx[j]; ay += mf.vy[j]; nn++; }
         const m = Math.hypot(ax, ay) / nn / mf.norm; if (m < 0.18) continue;
-        const L = Math.min(1, m) * s * 2.4, ang = Math.atan2(ay, ax), x0 = cx + X[i] * s, y0 = cy + Y[i] * s;
+        const L = Math.min(1, m) * s * 2.4, ang = Math.atan2(-ay, ax), x0 = cx + G.DX[i] * s, y0 = cy - G.DY[i] * s;   // canvas y runs down
         const x1 = x0 + Math.cos(ang) * L, y1 = y0 + Math.sin(ang) * L;
         ex.strokeStyle = `rgba(255,255,255,${0.35 + 0.6 * Math.min(1, m)})`;
         ex.beginPath(); ex.moveTo(x0 - Math.cos(ang) * L * 0.3, y0 - Math.sin(ang) * L * 0.3); ex.lineTo(x1, y1);
         ex.lineTo(x1 - Math.cos(ang - 0.5) * 5, y1 - Math.sin(ang - 0.5) * 5); ex.moveTo(x1, y1); ex.lineTo(x1 - Math.cos(ang + 0.5) * 5, y1 - Math.sin(ang + 0.5) * 5); ex.stroke();
       }
     }
-    if ($('spatial').checked) {
+    if ($('spatial').checked && G.mode === 'lattice') {
       const R = Stimuli.radius() * s;
       ex.strokeStyle = 'rgba(240,160,75,0.28)'; ex.lineWidth = 1; ex.setLineDash([4, 5]);
       ex.beginPath(); ex.arc(cx, cy, R / 3, 0, 2 * Math.PI); ex.stroke();
@@ -521,7 +538,7 @@
     if (!fineX) {
       const nx = 100, ny = 75; fineX = new Float32Array(nx * ny); fineY = new Float32Array(nx * ny);
       const span = 2 * Rr * 1.15;
-      for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) { fineX[j * nx + i] = (i / (nx - 1) - 0.5) * span * W / H; fineY[j * nx + i] = (j / (ny - 1) - 0.5) * span; }
+      for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) { fineX[j * nx + i] = (i / (nx - 1) - 0.5) * span * W / H; fineY[j * nx + i] = (0.5 - j / (ny - 1)) * span; }
       fineImg = rx2.createImageData(nx, ny);
     }
     const L = Stimuli.frameAt(fineX, fineY, P, simT, new Float32Array(fineX.length)), d = fineImg.data;
@@ -535,7 +552,7 @@
   let drawing = false;
   const paintAt = (e) => {
     const r = eye.getBoundingClientRect(), s = eyeScale() * r.width / eye.width;
-    Stimuli.addPaint((e.clientX - r.left - r.width / 2) / s, (e.clientY - r.top - r.height / 2) / s, simT, P.polarity);
+    Stimuli.addPaint((e.clientX - r.left - r.width / 2) / s, -(e.clientY - r.top - r.height / 2) / s, simT, P.polarity);
   };
   eye.addEventListener('pointerdown', e => { if (P.kind !== 'paint') { $('kind').value = 'paint'; $('kind').onchange(); } drawing = true; eye.setPointerCapture(e.pointerId); paintAt(e); });
   eye.addEventListener('pointermove', e => { if (drawing) paintAt(e); });
@@ -550,7 +567,7 @@
     fx.fillStyle = '#f0c75a'; fx.fillText('brighten', 4, 12);
     fx.fillStyle = '#7f8cff'; fx.fillText('damp', 4, mid + 14);
     fx.fillStyle = '#2a2d36'; fx.fillRect(LW, mid, W - LW - 4, 1);
-    const labels = ['centre', '←', '↖', '↗', '→', '↘', '↙'];
+    const labels = ['centre', '←', '↙', '↘', '→', '↗', '↖'];   // eye sectors (worker regions), with up = dorsal
     fx.textAlign = 'center';
     for (let r = 0; r < n; r++) {
       const v = Math.max(-1, Math.min(1, fbR[r] * +$('fbDepth').value)), x = LW + r * w, hgt = Math.abs(v) * 15;
@@ -614,7 +631,7 @@
         const id = arr[k]; if (id < 0) continue;
         let v = lastDV[id] / sc; v = v > 1 ? 1 : v < -1 ? -1 : v; ab += Math.abs(v); n++;
         const r = (v > 0 ? 32 + 208 * v : 32 + 58 * -v) * dim, g = (v > 0 ? 34 + 126 * v : 34 + 132 * -v) * dim, b = (v > 0 ? 40 + 35 * v : 40 + 192 * -v) * dim;
-        const px = Math.round(ox + X[k] * MS), py = Math.round(oy + Y[k] * MS);
+        const px = Math.round(ox + X[k] * MS), py = Math.round(oy - Y[k] * MS);
         for (let dy = 0; dy < 2; dy++) for (let dx = 0; dx < 2; dx++) { const o = 4 * ((py + dy) * casC.width + px + dx); pix[o] = r; pix[o + 1] = g; pix[o + 2] = b; }
       }
       lvl[tl.g] += ab / Math.max(n, 1); cnt[tl.g]++;
