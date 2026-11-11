@@ -6,7 +6,7 @@
 <title>FlyHarp · a synthesizer played by the fly visual system</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bowlby+One+SC&family=Courier+Prime:wght@400;700&family=Spline+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=202611110236">
+<link rel="stylesheet" href="css/style.css?v=202611110243">
 </head>
 <body>
 <header>
@@ -234,15 +234,24 @@
     </details>
   </section>
 </main>
+<div id="begin" class="begin" role="dialog" aria-label="Start FlyHarp">
+  <div class="beginCard">
+    <div class="logo beginLogo" aria-hidden="true"><span class="ink">FLY<span class="lc">harp</span></span><span class="mis">FLY<span class="lc">harp</span></span></div>
+    <p>A synthesizer played by the fly's visual system. Your camera becomes its eye; the cells of its optic lobe become strings.</p>
+    <button id="beginGo" class="go beginGo">▶ Click to begin</button>
+    <button id="beginQuiet" class="beginQuiet">or look around without sound</button>
+    <p class="beginNote">Browsers only let a page make sound after a click. The camera will ask for permission; without it, a drifting grating plays instead.</p>
+  </div>
+</div>
 <div id="tip" class="tip" role="tooltip"></div>
-<script>window.FH_V = '202611110236';  /* build stamp, set by tools/stamp.py: versions workers, worklet and data too */</script>
-<script src="js/info.js?v=202611110236"></script>
-<script src="js/stimuli.js?v=202611110236"></script>
-<script src="js/eyegeom.js?v=202611110236"></script>
-<script src="js/ear-net.js?v=202611110236"></script>
-<script src="js/tonnectome.js?v=202611110236"></script>
-<script src="js/audio.js?v=202611110236"></script>
-<script src="js/app.js?v=202611110236"></script>
-<script type="module" src="js/lobe.js?v=202611110236"></script>
+<script>window.FH_V = '202611110243';  /* build stamp, set by tools/stamp.py: versions workers, worklet and data too */</script>
+<script src="js/info.js?v=202611110243"></script>
+<script src="js/stimuli.js?v=202611110243"></script>
+<script src="js/eyegeom.js?v=202611110243"></script>
+<script src="js/ear-net.js?v=202611110243"></script>
+<script src="js/tonnectome.js?v=202611110243"></script>
+<script src="js/audio.js?v=202611110243"></script>
+<script src="js/app.js?v=202611110243"></script>
+<script type="module" src="js/lobe.js?v=202611110243"></script>
 </body>
 </html>

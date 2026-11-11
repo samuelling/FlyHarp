@@ -186,3 +186,12 @@ label.small{font-size:12.5px;margin:3px 0}
 .tnViews{display:flex;flex-wrap:wrap;gap:4px;margin:8px 0 4px}
 .tnViews button.on{border-color:var(--acc);color:var(--acc)}
 .heroEye #eye.painting{cursor:crosshair;touch-action:none}
+/* click to begin: browsers need a gesture before audio can start */
+.begin{position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;background:#07080acc;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);transition:opacity .25s}
+.begin.gone{opacity:0;pointer-events:none}
+.beginCard{max-width:420px;margin:20px;padding:26px 26px 20px;background:var(--panel);border:1px solid var(--line);border-radius:18px;text-align:center;box-shadow:0 20px 60px #000a}
+.beginLogo{font-size:58px;margin:4px 0 2px}
+.beginCard p{color:#cfccc4;font-size:14.5px;margin:12px 0 16px}
+.beginGo{font-size:17px;padding:12px 28px}
+.beginQuiet{display:block;margin:12px auto 0;background:none;border:0;color:var(--muted);font:inherit;font-size:13px;cursor:pointer;text-decoration:underline}
+.beginCard .beginNote{color:var(--muted);font-size:12px;margin:14px 0 0}

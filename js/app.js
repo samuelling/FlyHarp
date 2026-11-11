@@ -168,6 +168,10 @@
     } else { playing = false; Sound.allNotesOff(); $('go').textContent = '▶ Start'; $('go').classList.remove('playing'); }
   };
   const status = s => $('status').textContent = s;
+  // click to begin: the first click is also the gesture that lets the browser start audio
+  const dismissBegin = () => { $('begin').classList.add('gone'); setTimeout(() => $('begin').remove(), 300); };
+  $('beginGo').onclick = async () => { dismissBegin(); if (!playing) await $('go').onclick(); };
+  $('beginQuiet').onclick = dismissBegin;
 
   // ---------------------------------------------------------------- strings and pitches
   function buildStrings() {
