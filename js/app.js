@@ -246,6 +246,11 @@
   // click to begin: the first click is also the gesture that lets the browser start audio
   const dismissBegin = () => { $('begin').classList.add('gone'); setTimeout(() => $('begin').remove(), 300); };
   $('beginGo').onclick = async () => { dismissBegin(); if (!playing) await $('go').onclick(); };
+  // What? : the explainer, closed by ×, Escape or a click outside it
+  const whatDlg = $('whatDlg');
+  $('whatBtn').onclick = () => whatDlg.showModal();
+  $('whatClose').onclick = () => whatDlg.close();
+  whatDlg.addEventListener('click', e => { const r = whatDlg.getBoundingClientRect(); if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) whatDlg.close(); });
   $('beginQuiet').onclick = () => { dismissBegin(); if (P.kind === 'webcam') useCamera(); };
 
   // ---------------------------------------------------------------- strings and pitches

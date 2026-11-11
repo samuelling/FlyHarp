@@ -289,3 +289,16 @@ label.small{font-size:12.5px;margin:3px 0}
 .earMap select{width:100%;min-width:0}
 .earMap .hint{grid-column:1/-1;margin:2px 0 0}
 .hears .tnFig{max-width:none;margin:4px 0 14px}
+
+/* What? : the explainer */
+.whatBtn{font:600 13.5px/1 "Spline Sans","Helvetica Neue",Arial,sans-serif;padding:8px 14px;border-radius:18px;border:1.5px solid #FFD23F;background:none;color:#FFD23F;cursor:pointer;letter-spacing:.02em;box-shadow:2px 2px 0 #FF7A1A}
+.whatBtn:hover{background:#FFD23F;color:#141517}
+.whatDlg{max-width:720px;width:calc(100% - 32px);max-height:calc(100dvh - 48px);overflow:auto;background:var(--panel);color:#cfccc4;border:1px solid var(--line);border-radius:18px;padding:22px 26px 18px;box-shadow:0 24px 80px #000c;font-size:14.5px;line-height:1.55}
+.whatDlg::backdrop{background:#07080acc;backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
+.whatDlg h2{font:400 30px/1 "Bowlby One SC","Arial Black",Impact,sans-serif;color:#FFD23F;text-shadow:2px 2px 0 #FF7A1A;margin:2px 0 12px;letter-spacing:-.01em}
+.whatDlg h3{font:700 11px/1 "Courier Prime","Courier New",monospace;letter-spacing:.14em;text-transform:uppercase;color:#FF7A1A;margin:20px 0 8px}
+.whatDlg .whatLead{font-size:16px;color:var(--ink);margin:0 0 4px}
+.whatDlg ol,.whatDlg ul{margin:0;padding-left:20px}.whatDlg li{margin:0 0 6px}
+.whatDlg dt{color:var(--ink);margin-top:8px}.whatDlg dd{margin:2px 0 0 0}
+.whatDlg b{color:var(--ink)}
+.whatClose{position:sticky;top:0;float:right;margin:-8px -10px 0 0;width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:#1b1d22;color:var(--ink);font-size:20px;line-height:1;cursor:pointer}

@@ -6,7 +6,7 @@
 <title>FlyHarp · a synthesizer played by the fly visual system</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bowlby+One+SC&family=Courier+Prime:wght@400;700&family=Spline+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=202611111238">
+<link rel="stylesheet" href="css/style.css?v=202611111247">
 </head>
 <body>
 <header>
@@ -45,6 +45,7 @@
     </div>
   </div>
   <button id="go" class="go">▶ Start</button>
+  <button id="whatBtn" class="whatBtn" aria-haspopup="dialog">What?</button>
   <div id="status" class="status">loading the optic lobe…</div>
 </header>
 
@@ -293,6 +294,39 @@
     </section>
   </div>
 </aside>
+<dialog id="whatDlg" class="whatDlg" aria-labelledby="whatTitle">
+  <button class="whatClose" id="whatClose" aria-label="Close">×</button>
+  <h2 id="whatTitle">What is this?</h2>
+  <p class="whatLead">FlyHarp is an instrument played by a fruit fly's brain. A model of the fly's eye, wired from its connectome, watches your camera; every time one of its cell types fires, a string plucks. Then the fly's own ears, wired the same way, listen to the music, and what they hear can be shown back to its eyes.</p>
+
+  <h3>How to play</h3>
+  <ol>
+    <li><b>Allow the camera</b> when asked, then move, wave, or point it at something moving. Nothing leaves your device. No camera? Pick a stimulus instead.</li>
+    <li><b>Open the controls</b> with the tab on the right edge (or the Tab key): <i>Stimulus</i> sets what the eye sees, <i>Instrument</i> which instruments each part of the eye plays, <i>Hearing</i> what the ears listen to, <i>Model</i> the science settings.</li>
+    <li><b>Slow the tempo</b> to stretch the fly's milliseconds into melodies; try the ensembles for whole new sounds.</li>
+  </ol>
+
+  <h3>The three views</h3>
+  <dl>
+    <dt>What its Connectome <b>Sees</b></dt>
+    <dd>The compound eye, one hexagon per facet (721 of them), and lenses that show the same scene at each stage of the visual system: light, then the lamina's contrast, ON and OFF channels, and the motion detectors. Below: the optic lobe in 3D, every neuron lighting up, and the cascade of notes by area.</dd>
+    <dt>What its Connectome <b>Hears</b></dt>
+    <dd>The fly's antennae and early auditory brain listening to the instrument. Pick a picture of what it hears, and a lens for which stage of hearing draws it: from the antenna's ear (Johnston's organ) inward through the AMMC and wedge to the song areas. Below: the auditory network in 3D.</dd>
+    <dt><b>Synthesthesia</b></dt>
+    <dd>The loop closed: the eye sees only what the ears hear, so sight becomes sound becomes sight. A live map of the fly's head shows it all flowing.</dd>
+  </dl>
+
+  <h3>What's real, and what's made up</h3>
+  <ul>
+    <li><b>The eye is a real model.</b> It is the connectome-constrained optic-lobe model of Lappalainen et al. (<i>Nature</i> 2024): 45,669 neurons in 65 cell types and 1.45 million synapses, wired from electron microscopy, with its unmeasured parameters trained so it computes motion. It runs live in your browser.</li>
+    <li><b>The ears are wired, not trained.</b> 4,222 neurons and 1.35 million synapses from the whole-brain FlyWire connectome: who connects to whom and with what sign is measured; gains and timing are set by hand.</li>
+    <li><b>The music is a choice.</b> Mapping cells to notes (deeper in the eye, higher in pitch; each area its own instrument; a cell's speed sets its envelope) is an artistic translation, and so are the ear's pictures, though each one is a faithful function of the model's output.</li>
+    <li><b>Some extras are labelled as such:</b> gain control and the measured eye shape are optional additions to the trained model, in the <i>Model</i> tab.</li>
+  </ul>
+
+  <h3>Sources</h3>
+  <p class="hint">Visual model: flyvis, Lappalainen et al. 2024 (TuragaLab). Whole-brain wiring and cell types: FlyWire v783, Dorkenwald et al. 2024 and Schlegel et al. 2024. Eye map: Zhao et al. 2025 (reiserlab/eyemap_T4). Code: github.com/samuelling/FlyHarp.</p>
+</dialog>
 <div id="begin" class="begin" role="dialog" aria-label="Start FlyHarp">
   <div class="beginCard">
     <div class="logo beginLogo" aria-hidden="true"><span class="ink">FLY<span class="lc">harp</span></span><span class="mis">FLY<span class="lc">harp</span></span></div>
@@ -303,16 +337,16 @@
   </div>
 </div>
 <div id="tip" class="tip" role="tooltip"></div>
-<script>window.FH_V = '202611111238';  /* build stamp, set by tools/stamp.py: versions workers, worklet and data too */</script>
-<script src="js/info.js?v=202611111238"></script>
-<script src="js/stimuli.js?v=202611111238"></script>
-<script src="js/eyegeom.js?v=202611111238"></script>
-<script src="js/ear-net.js?v=202611111238"></script>
-<script src="js/tonnectome.js?v=202611111238"></script>
-<script src="js/audio.js?v=202611111238"></script>
-<script src="js/synth.js?v=202611111238"></script>
-<script src="js/app.js?v=202611111238"></script>
-<script type="module" src="js/ear3d.js?v=202611111238"></script>
-<script type="module" src="js/lobe.js?v=202611111238"></script>
+<script>window.FH_V = '202611111247';  /* build stamp, set by tools/stamp.py: versions workers, worklet and data too */</script>
+<script src="js/info.js?v=202611111247"></script>
+<script src="js/stimuli.js?v=202611111247"></script>
+<script src="js/eyegeom.js?v=202611111247"></script>
+<script src="js/ear-net.js?v=202611111247"></script>
+<script src="js/tonnectome.js?v=202611111247"></script>
+<script src="js/audio.js?v=202611111247"></script>
+<script src="js/synth.js?v=202611111247"></script>
+<script src="js/app.js?v=202611111247"></script>
+<script type="module" src="js/ear3d.js?v=202611111247"></script>
+<script type="module" src="js/lobe.js?v=202611111247"></script>
 </body>
 </html>
