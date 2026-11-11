@@ -19,10 +19,10 @@ import numpy as np, pandas as pd, pyarrow.feather as pf
 
 D, OUT = sys.argv[1].rstrip('/') + '/', sys.argv[2].rstrip('/') + '/'
 ann = pd.read_csv(D + 'neuron_annotations.tsv', sep='\t', dtype=str,
-                  usecols=['root_id', 'pos_x', 'pos_y', 'pos_z', 'super_class', 'cell_class', 'cell_sub_class', 'cell_type', 'top_nt', 'side'])
+                  usecols=['root_id', 'pos_x', 'pos_y', 'pos_z', 'super_class', 'cell_class', 'cell_sub_class', 'cell_type', 'top_nt', 'side', 'synonyms'])
 ann['root_id'] = ann.root_id.astype(np.int64)
 A = ann.set_index('root_id')
-t = pf.read_table(D + 'proofread_connections_783.feather', columns=['pre_pt_root_id', 'post_pt_root_id', 'syn_count']).to_pandas()
+t = pf.read_table(D + 'proofread_connections_783.feather', columns=['pre_pt_root_id', 'post_pt_root_id', 'neuropil', 'syn_count']).to_pandas()
 e = t.groupby(['pre_pt_root_id', 'post_pt_root_id'], as_index=False).syn_count.sum()
 intot = e.groupby('post_pt_root_id').syn_count.sum()
 sensory = set(ann[ann.super_class == 'sensory'].root_id)
@@ -58,6 +58,16 @@ P = A.reindex(ids)
 x = P.pos_x.astype(float).values; y = P.pos_y.astype(float).values
 z = P.pos_z.astype(float).values
 x = np.where(np.isnan(x), np.nanmean(x), x); y = np.where(np.isnan(y), np.nanmean(y), y); z = np.where(np.isnan(z), np.nanmean(z), z)   # a few lack a position
+# where each neuron listens: the neuropil holding most of its input synapses (sides merged; JONs: the antenna)
+inp = t[t.post_pt_root_id.isin(idx)].copy(); inp['np'] = inp.neuropil.fillna('').str.replace(r'_[LR]$', '', regex=True)
+inp = inp.groupby(['post_pt_root_id', 'np']).syn_count.sum().reset_index().sort_values('syn_count').drop_duplicates('post_pt_root_id', keep='last')
+npl = dict(zip(inp.post_pt_root_id, inp.np))
+NP = [('JO' if i < len(tiers[0]) else (npl.get(r) or '?')) for i, r in enumerate(ids)]
+# a few classic names from the literature, carried in FlyWire's synonyms (e.g. Baker 2022: WV-WV)
+def nick(syn):
+    if not isinstance(syn, str): return ''
+    m = re.findall(r'(?:Baker 2022|Matsuo 2016|Vaughan 2014|Kamikouchi 2009|Lai 2012): ([^;]+)', syn)
+    return m[-1].strip() if m else ''
 neurons = dict(
     n=N, tiers=[len(T) for T in tiers], edges=int(len(ee)), synapses=int(ee.syn_count.sum()),
     type=[(c if isinstance(c, str) else '') for c in P.cell_type.values],
@@ -68,6 +78,7 @@ neurons = dict(
     x=list(np.round((x - np.nanmean(x)) / 90000, 4)), y=list(np.round(-(y - np.nanmean(y)) / 90000, 4)),
     z=list(np.round((z - np.nanmean(z)) / 9000, 4)),    # anterior-posterior: z is in 40 nm sections, x and y in 4 nm voxels
     jo=[jo_group(c) for c in P.cell_type.values[:len(tiers[0])]],
+    np=NP, cls=[(c if isinstance(c, str) else '') for c in P.super_class.values], nick=[nick(c) for c in P.synonyms.values],
     source='FlyWire v783 (Dorkenwald et al. 2024; Schlegel et al. 2024): proofread connections and cell-type annotations')
 json.dump(neurons, open(OUT + 'ear.json', 'w'), separators=(',', ':'))
 print(f'{N} neurons (tiers {neurons["tiers"]}), {len(ee)} connections, {ee.syn_count.sum()} synapses; ear.bin {rowptr.nbytes + pre.nbytes + syn.nbytes} bytes')

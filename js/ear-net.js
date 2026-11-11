@@ -81,6 +81,31 @@
       for (let i = this.nJ; i < N; i++) { V[i] += this.alpha[i] * (acc[i] - V[i]); const v = V[i]; r[i] = v > 0 ? Math.tanh(v) : 0; }
     }
     reset() { this.V.fill(0); this.r.fill(0); this.jA.fill(0); }
+    // What each neuron listens to, inherited through the wiring: a 2 x NB profile (which antenna, which band).
+    // A vibration JON is tuned to its band (Gaussian, about 1 band wide) on its own antenna; a deflection JON
+    // (C, E, F) has no pitch, so it is flat across its antenna's bands. Every other neuron takes the sum of its
+    // excitatory inputs' profiles, weighted by synapse share, normalised to 1. Inhibition shapes responses but is
+    // not counted as a preference. Four passes in tier order settle the feed-forward chain.
+    tuning() {
+      const N = this.N, K = 2 * NB, T = new Float32Array(N * K);
+      for (let j = 0; j < this.nJ; j++) {
+        const o = j * K + this.jEar[j] * NB;
+        if (this.jSlow[j]) { for (let b = 0; b < NB; b++) T[o + b] = 1 / NB; continue; }
+        let s = 0; for (let b = 0; b < NB; b++) { const g = Math.exp(-0.5 * ((b - this.jBand[j]) / 1.0) ** 2); T[o + b] = g; s += g; }
+        for (let b = 0; b < NB; b++) T[o + b] /= s;
+      }
+      const rp = this.rowptr, pre = this.pre, w = this.w, acc = new Float32Array(K);
+      for (let pass = 0; pass < 4; pass++) for (let i = this.nJ; i < N; i++) {
+        acc.fill(0); let tot = 0;
+        for (let p = rp[i]; p < rp[i + 1]; p++) { const ww = w[p]; if (ww <= 0) continue; const o = pre[p] * K; for (let k = 0; k < K; k++) acc[k] += ww * T[o + k]; tot += ww; }
+        const o = i * K;
+        let s = 0; for (let k = 0; k < K; k++) s += acc[k];
+        if (tot > 0 && s > 0) for (let k = 0; k < K; k++) T[o + k] = acc[k] / s;
+      }
+      // the few with no excitatory path from the ear listen to everything equally
+      for (let i = this.nJ; i < N; i++) { let s = 0; for (let k = 0; k < K; k++) s += T[i * K + k]; if (!(s > 0)) for (let k = 0; k < K; k++) T[i * K + k] = 1 / K; }
+      this.T = T; return T;
+    }
   }
   EarNet.NB = NB; EarNet.FLO = FLO; EarNet.FHI = FHI;
   if (typeof module !== 'undefined') module.exports = EarNet; else root.EarNet = EarNet;

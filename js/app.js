@@ -240,13 +240,13 @@
   document.querySelectorAll('.viewTabs button').forEach(b => b.onclick = () => {
     document.querySelectorAll('.viewTabs button').forEach(x => x.classList.toggle('on', x === b));
     document.querySelectorAll('.view').forEach(v => v.classList.toggle('on', v.id === 'view-' + b.dataset.view));
-    setLoop(b.dataset.view === 'tonnectome');
+    setLoop(b.dataset.view === 'synth'); Synth.setVisible(b.dataset.view === 'synth');
     window.dispatchEvent(new Event('resize'));
   });
   // click to begin: the first click is also the gesture that lets the browser start audio
   const dismissBegin = () => { $('begin').classList.add('gone'); setTimeout(() => $('begin').remove(), 300); };
   $('beginGo').onclick = async () => { dismissBegin(); if (!playing) await $('go').onclick(); };
-  $('beginQuiet').onclick = dismissBegin;
+  $('beginQuiet').onclick = () => { dismissBegin(); if (P.kind === 'webcam') useCamera(); };
 
   // ---------------------------------------------------------------- strings and pitches
   function buildStrings() {
@@ -376,7 +376,7 @@
       layoutCascade(); ready = true; Tonnectome.init({P});
       eyemapP.then(() => { if (!eyemap) $('eyeGeom').disabled = true; else if ($('eyeGeom').value === 'real') setGeometry('real'); });
       $('eyeGeom').onchange = () => { setGeometry($('eyeGeom').value); $('eyehint').textContent = G.mode === 'real' ? `The measured eye: ${eyemap.ommatidia} ommatidia, ${eyemap.median_dphi_deg.toFixed(1)}° apart on average, finest along the equator. Each facet is drawn where it looks (azimuthal-equidistant projection about the centre column); the network and its wiring are unchanged.` : ''; }; applyPreset('cascade'); sendGain(); setupProbe();
-      if (P.kind === 'webcam') useCamera();
+      // the camera is asked for only after the visitor clicks to begin (see the begin overlay below)
       window.FlyHarp = {types, X, Y, nodeOf, scale, groupOf, N: m.N, nE: m.nE, dv: () => lastDV,
         requestEdges: k => worker.postMessage({cmd: 'edges', k})};
       window.dispatchEvent(new Event('flyharp-ready'));
@@ -419,7 +419,7 @@
   }
   let frameN = 0;
   const stats = {notes: 0, byGroup: [0, 0, 0, 0, 0], dep: 0, hyp: 0};
-  window.__flyharp = {stats, P, area, fbR, get fbInfo() { return fbInfo; }, get strings() { return strings; }, get simT() { return simT; }, toggleType: t => toggleType(t)};
+  window.__flyharp = {stats, P, area, get meter() { return meter; }, fbR, get fbInfo() { return fbInfo; }, get strings() { return strings; }, get simT() { return simT; }, toggleType: t => toggleType(t)};
 
   // ---------------------------------------------------------------- drawing: the eye and its lenses
   const LENSES = [
@@ -839,7 +839,7 @@
     $('pNote').innerHTML = `${m.type}: ${on.length ? on.join(' + ') : 'gain control off, so only the trained network'} · size tuning: <span style="color:${A}">80%</span> and <span style="color:${Bc}">12%</span> contrast`;
   }
 
-  // ---------------------------------------------------------------- The Tonnectome view: the eye wired to the ears
+  // ---------------------------------------------------------------- Synthesthesia: the eye wired to the ears
   // The eye and the ear picture are moved (not copied) into the loop view, so they keep running as they are, and
   // put back when you leave. While the view is open the stimulus is what the ears hear, mixed with the chosen
   // stimulus by the loop slider.
@@ -874,21 +874,4 @@
     $('lensMini').innerHTML = LENSES.map(L => `<button data-l="${L.id}" class="${L.id === lens ? 'on' : ''}">${L.name}</button>`).join('');
     $('lensMini').querySelectorAll('button').forEach(b => b.onclick = () => { lens = b.dataset.l; renderLenses(); renderLensMini(); });
   }
-  // live readouts along the loop
-  let lfNotes0 = 0, lfT0 = performance.now();
-  setInterval(() => {
-    if (!loopState.on) return;
-    const now = performance.now(), dn = stats.notes - lfNotes0, nps = dn / ((now - lfT0) / 1000); lfNotes0 = stats.notes; lfT0 = now;
-    $('lfNotes').textContent = `${nps.toFixed(1)} notes / s`;
-    $('lfLobe').textContent = `${strings.length} strings · ${P.kind === 'ear' ? 'seeing only sound' : 'seeing sound + stimulus'}`;
-    const r = Tonnectome.rates;
-    if (r) {
-      let jo = 0, act = 0; const nJ = 1104;
-      for (let i = 0; i < r.length; i++) { if (r[i] > 0.05) { act++; if (i < nJ) jo++; } }
-      $('lfEars').textContent = `${Math.round(100 * jo / nJ)}% of ear neurons firing`;
-      $('lfNet').textContent = `${act.toLocaleString()} of ${r.length.toLocaleString()} neurons active`;
-      document.querySelectorAll('#loopFlow li').forEach(li => li.classList.toggle('hot', li.dataset.k === 'notes' ? nps > 2 : li.dataset.k === 'ears' || li.dataset.k === 'net' ? act > 200 : nps > 2 && act > 200));
-    } else $('lfEars').textContent = playing ? 'listening…' : 'press Start';
-    $('lfPic').textContent = (document.querySelector('#tnViews button.on') || {}).textContent || '';
-  }, 500);
 })();

@@ -9,7 +9,7 @@ A synthesizer played by the *Drosophila* visual system. A stimulus (or your webc
 ## How it works
 
 - **The fly.** This is the best model of the 50-model flyvis ensemble (Lappalainen et al., *Nature* 2024): 45,669 neurons in 65 cell types and 1.45 M synapses on a 721-column hex eye. Its wiring comes from the FIB-SEM optic-lobe connectome, and its cell and synapse parameters were trained so the network computes optic flow. Every pair of cell types connects through one spatial filter that repeats at every column, so the whole network ships as 2,355 filters (`data/fly.json`, 57 kB). The browser rebuilds it and integrates it in a Web Worker at 20 ms per step (about 2.5 ms of compute per step). The JS port matches PyTorch to a median correlation of 1.000 (minimum 0.996 across cell types; `tools/validate_engine.js`).
-- **The eye.** The webcam is the default, sampled at each ommatidium and re-centred on grey. If no camera is available it falls back to a drifting grating. Other stimuli are drawn directly onto the 721 ommatidia: gratings, moving edges and bars, looming disks, drifting dots, full-field flashes, drawing with the pointer, or the webcam sampled at each ommatidium.
+- **The eye.** The webcam is the default, sampled at each ommatidium and re-centred on grey. The camera is requested only after you click to begin, and the video never leaves the browser. If no camera is available it falls back to a drifting grating. Other stimuli are drawn directly onto the 721 ommatidia: gratings, moving edges and bars, looming disks, drifting dots, full-field flashes, drawing with the pointer, or the webcam sampled at each ommatidium.
 - **What the fly sees** (the main view). A large compound-eye display with one hexagonal facet per ommatidium, plus a "what you see" inset showing the full-resolution camera or stimulus and the eye's footprint. Six lenses show the same scene at successive stages:
   - **Photoreceptors:** the input image.
   - **Lamina contrast:** L1 + L2.
@@ -46,6 +46,10 @@ A synthesizer played by the *Drosophila* visual system. A stimulus (or your webc
     - *pitch helix*: one turn per octave, chroma as angle, left and right antennae mirrored.
     - *rhythm rose*: autocorrelation of each ear's loudness in low, mid and high bands, delay as radius out to 200 ms; pulse trains such as a 35 ms courtship song draw rings.
     - *stained glass*: one pane per cell type and side, ringed by step from the ear outward, brightness = mean activity.
+  - **Hearing lenses** (the *Hears* tab), laid out like the eye's: pick a stage of the auditory hierarchy and every picture shows what it makes of the sound. Areas are FlyWire neuropils, each neuron placed where most of its input synapses are (`np` in `data/ear.json`). They are Johnston's organ split into *sound* (JO-A, B, D) and *wind & gravity* (C, E, F); then the AMMC and the saddle; then the wedge and the gnathal ganglia; then the ventrolateral protocerebrum (AVLP, PVLP), the posterior slope (IPS, SPS) and a group *toward vision* (PLP and optic lobe), where the ear's pathway reaches the visual side. Arrows are the main area-to-area connections, thicker for more synapses and dashed where the net sign is inhibitory. Chips narrow a lens to one cell type.
+    - **How a population becomes a picture.** Each neuron gets a preferred antenna and pitch, inherited through the wiring (`EarNet.tuning`). A vibration JON is tuned to its own band; a deflection JON is flat; every other cell takes the synapse-weighted sum of its excitatory inputs' preferences. A lens population is then read out every 5 ms as a 2 × 32 band profile: the mean firing of its cells, weighted by those preferences, scaled to its own recent peak. That profile replaces the antennae's in every picture. Going inward, cells mix the two ears (laterality falls from 1.0 in Johnston's organ to 0.70 in the AMMC and 0.24 in the wedge) and listen more broadly, so pitch blurs and timing and loudness carry more of the picture.
+    - **Picture features.** *Shape*, *brightness* and *colour* can each follow a different population, for example the shape from the wedge and the colour from the ventrolateral areas. Colour is drawn on screen only: the eye model sees in grey.
+- **Synthesthesia** (third tab). The whole loop on one screen. The eye is shown only what its ears hear (a slider mixes the stimulus back in), and a live schematic of the fly's head runs from front to back. Light enters the compound eyes and passes through lamina, medulla, lobula and lobula plate; the optic lobe plays the instrument; sound reaches the antennae; the auditory areas pass it inward; the lens population paints a picture; and the picture beams back into the eyes. Every area glows with its own activity relative to its recent peak. The full-size eye and picture sit underneath.
 - **Hover cards** (`js/info.js`) give each visual area and each of the 65 cell types a short summary of its putative role, plus live facts: time constant, its notes, and how often it has plucked.
 
 ## Files
@@ -55,7 +59,8 @@ index.html  css/style.css
 js/engine.js         the network (shared by the worker and Node tests)
 js/gain.js           optional photoreceptor adaptation and divisive normalization
 js/eyegeom.js        eye geometry: idealized lattice or measured eye; facets and lattice-to-world Jacobians
-js/tonnectome.js     The Tonnectome: ear pictures, ear -> eye
+js/tonnectome.js     The Tonnectome: ear pictures, hearing lenses, ear -> eye
+js/synth.js          Synthesthesia: the live head schematic of the loop
 js/ear3d.js          the auditory connectome in 3D (three.js), lit by the ear model
 js/ear-worklet.js    antennae: resonance + 32-band push/pull filterbank (AudioWorklet)
 js/ear-net.js, js/ear-worker.js  Johnston's organ + early auditory network from FlyWire
