@@ -69,6 +69,25 @@
       <label>direction <input type="range" id="direction" min="0" max="345" step="15" value="0"><output></output></label>
       <label class="row">polarity
         <span class="seg"><button data-pol="1">ON</button><button data-pol="-1" class="on">OFF</button></span></label>
+      <label>light level <input type="range" id="light" min="-4" max="1.5" step="0.25" value="0"><output></output></label>
+    </section>
+    <section>
+      <h2>Gain control</h2>
+      <p class="hint">The trained network has none: it is linear above threshold, so responses scale with light and contrast without limit, and its surrounds only subtract. These two stages add it. Both are additions to the trained model.</p>
+      <label class="row"><input type="checkbox" id="gAdapt"> photoreceptor adaptation</label>
+      <div class="sub" id="gAdaptBox">
+        <label>adaptation time <input type="range" id="gTauA" min="0.1" max="3" step="0.1" value="0.5"><output></output></label>
+        <label>half-saturating contrast <input type="range" id="gK" min="0.2" max="4" step="0.1" value="1"><output></output></label>
+        <p class="hint">Each ommatidium adapts to its own mean light and signals Weber contrast, compressed. Hold still in front of the camera and the image fades; look at something bright, then away, and you see an afterimage.</p>
+      </div>
+      <label class="row"><input type="checkbox" id="gNorm"> divisive normalization</label>
+      <div class="sub" id="gNormBox">
+        <label>divides the drive onto <select id="gTarget"><option value="lamina">lamina: L1–L3</option><option value="medulla">medulla: Mi1, Tm3, Mi4, Mi9, Tm1, Tm2, Tm4, Tm9</option><option value="both" selected>both</option></select></label>
+        <label>pool size (columns, sd) <input type="range" id="gPool" min="0.5" max="6" step="0.5" value="3"><output></output></label>
+        <label>c50 <input type="range" id="gC50" min="0.05" max="1" step="0.05" value="0.25"><output></output></label>
+        <label>pool time constant (ms) <input type="range" id="gTauN" min="20" max="400" step="20" value="80"><output></output></label>
+        <p class="hint">Each column's drive is divided by the local contrast energy, pooled over a Gaussian of neighbouring columns: response ∝ c / (1 + c / c50). A pool wider than the receptive field gives surround suppression that grows with contrast. In this model Mi1 takes most of its drive straight from R8, so normalizing the lamina alone barely reaches the T4 pathway.</p>
+      </div>
     </section>
     <section>
       <h2>Time</h2>
@@ -154,6 +173,14 @@
       <canvas id="cascade" width="1180" height="432"></canvas>
       <figcaption class="legend"><span><i class="grad"></i>hyperpolarised · grey · depolarised (relative to a grey screen)</span><span><i class="ring"></i>pluck</span><span><i class="ring dash"></i>hyperpolarisation pluck</span><span class="muted">bright = strung · click a map to string it · hover for what each cell does</span></figcaption>
     </figure>
+    <section class="probe">
+      <div class="probeHead">
+        <h2 class="heroTitle">Probe the gain control</h2>
+        <p class="lead">In-silico physiology on a copy of the network: a drifting grating in a disk over the centre of the eye, recorded from the central cell of one type. Dashed is the network as trained; solid is with the gain control set on the left.</p>
+        <div class="probeTools"><label class="row">cell type <select id="pType"></select></label><button class="small" id="pRun">run probe</button><span class="pBar"><i id="pFill"></i></span><span id="pNote" class="hint"></span></div>
+      </div>
+      <div class="probePlots" id="pPlots"></div>
+    </section>
     <details class="about">
       <summary>What am I hearing?</summary>
       <p>The network is the connectome-constrained model of the fly optic lobe by Lappalainen et al. (Nature 2024), the best of their 50-model ensemble.
@@ -169,6 +196,9 @@
         Each area of the visual system is its own instrument family, and each cell type a variant of it. A cell's envelope follows its fitted membrane time constant, so fast cells click and slow cells swell.
         Because the network has real integration time constants, a flash ripples through the layers over tens of milliseconds;
         slowing the tempo stretches that ripple into a melody.</p>
+      <p>The trained network has no gain control of its own. It is linear above threshold, so its responses grow in proportion to light and contrast, and its surrounds subtract rather than divide.
+        The <i>Gain control</i> panel adds two stages that real fly eyes have and the model lacks: photoreceptors that adapt to their own mean light, and divisive normalization of the lamina and medulla by local contrast energy.
+        They are additions to the trained model, not part of it. The <i>Probe</i> panel measures what they do to any cell type.</p>
       <p class="hint">Code and model export: github.com/samuelling/FlyHarp. Model: flyvis (TuragaLab).</p>
     </details>
   </section>

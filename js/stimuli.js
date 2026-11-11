@@ -84,12 +84,15 @@ const Stimuli = (() => {
           }
           out[i] = acc / n / 255; mean += out[i];
         }
-        // keep the camera near the network's operating point: re-centre on grey, scale by the contrast control
+        // with photoreceptor adaptation on, the eye gets the camera's own luminance and adapts to it itself;
+        // otherwise keep the camera near the network's operating point: re-centre on grey, scale by the contrast control
         mean /= nC;
-        for (let i = 0; i < nC; i++) out[i] = clamp(0.5 + (out[i] - mean) * 2 * c);
+        if (!p.rawCam) for (let i = 0; i < nC; i++) out[i] = clamp(0.5 + (out[i] - mean) * 2 * c);
         break;
       }
     }
+    // overall light level (a neutral-density filter in front of the eye); 1 = the grey the network was trained on
+    if (p.light !== undefined && p.light !== 1) for (let i = 0; i < nC; i++) out[i] *= p.light;
     return out;
   }
 

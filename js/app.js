@@ -27,17 +27,29 @@
   let types = [], X = [], Y = [], nodeOf = [], region = [], NR = 7, scale = [];
   let strings = [], det = null;
   let simT = 0, acc = 0, lastNow = performance.now(), busy = false, ready = false, playing = false;
-  let lastLum = new Float32Array(721).fill(0.5), lastDV = null, rings = [], tokens = 24;
+  let lastLum = new Float32Array(721).fill(0.5), lastPR = null, lastDV = null, rings = [], tokens = 24;
   const worker = new Worker('js/worker.js');
 
   // ---------------------------------------------------------------- controls
   for (const id of ['contrast', 'size', 'speed', 'direction']) bindRange(id, v => P[id] = v);
   bindRange('tempo', () => {}); bindRange('thresh', () => {}); bindRange('rate', () => {}); bindRange('spread', buildStrings);
   bindRange('fbDepth', () => {});
+  bindRange('light', v => P.light = 2 ** v);
+  // gain control (js/gain.js): settings go to the simulation worker, and to the probe when it runs
+  const gainParams = () => ({adapt: $('gAdapt').checked, tauA: +$('gTauA').value, k: +$('gK').value, norm: $('gNorm').checked,
+    target: $('gTarget').value, poolR: +$('gPool').value, c50: +$('gC50').value, tauN: +$('gTauN').value / 1000});
+  const sendGain = () => {
+    const p = gainParams(); P.rawCam = p.adapt;
+    $('gAdaptBox').classList.toggle('off', !p.adapt); $('gNormBox').classList.toggle('off', !p.norm);
+    worker.postMessage({cmd: 'gain', p});
+  };
+  for (const id of ['gTauA', 'gK', 'gPool', 'gC50', 'gTauN']) bindRange(id, () => ready && sendGain());
+  for (const id of ['gAdapt', 'gNorm', 'gTarget']) $(id).onchange = sendGain;
   bindRange('vol', v => Sound.setVolume(v)); bindRange('rev', v => Sound.setReverb(v));
   function bindRange(id, fn) {
     const el = $(id), o = el.parentElement.querySelector('output');
-    const upd = () => { const v = +el.value; if (o) o.textContent = id === 'direction' ? v + '°' : (id === 'tempo' ? v.toFixed(2) + '×' : v); fn(v); };
+    const fmt = v => id === 'direction' ? v + '°' : id === 'tempo' ? v.toFixed(2) + '×' : id === 'light' ? '×' + +(2 ** v).toPrecision(2) : id === 'gTauA' ? v.toFixed(1) + ' s' : v;
+    const upd = () => { const v = +el.value; if (o) o.textContent = fmt(v); fn(v); };
     el.addEventListener('input', upd); upd();
   }
   $('kind').onchange = async () => {
@@ -254,7 +266,7 @@
     const m = e.data;
     if (m.cmd === 'ready') {
       types = m.types; X = m.x; Y = m.y; nodeOf = m.nodeOf; region = m.region; NR = m.NR; scale = m.scale;
-      tauList = m.tau; fbInfo = m.fbInfo; prefDir = m.prefDir || {};
+      tauList = m.tau; fbInfo = m.fbInfo; prefDir = m.prefDir || {}; decoder = m.decoder;
       // lattice indices (from pixel coords) and neighbours, for the motion arrows
       u = m.x.map((x, i) => Math.round(-m.y[i] - Math.round(x / 0.8660254) / 2)); v = m.x.map(x => Math.round(x / 0.8660254));
       nbr = m.x.map((x, i) => m.x.map((x2, j) => j).filter(j => (m.x[j] - x) ** 2 + (m.y[j] - m.y[i]) ** 2 < 1.1));
@@ -264,7 +276,7 @@
       if (fbInfo) $('fbHint').innerHTML = `Medulla → lamina feedback shapes the timbre. In this model ${(100 * fbInfo.fraction).toFixed(0)}% of the synaptic weight onto L1–L5 comes from medulla-resident cells (${fbInfo.sources.slice(0, 4).map(([k]) => k).join(', ')}…). Net inhibitory feedback damps notes (darker, shorter); net excitatory feedback brightens them.`;
       const order = types.map((t, i) => [m.tau[i], t]).sort((a, b) => a[0] - b[0]);
       order.forEach(([, t], r) => tauRank[t] = r / (order.length - 1));
-      Stimuli.init(X, Y); layoutCascade(); ready = true; applyPreset('cascade');
+      Stimuli.init(X, Y); layoutCascade(); ready = true; applyPreset('cascade'); sendGain(); setupProbe();
       if (P.kind === 'webcam') useCamera();
       window.FlyHarp = {types, X, Y, nodeOf, scale, groupOf, N: m.N, nE: m.nE, dv: () => lastDV,
         requestEdges: k => worker.postMessage({cmd: 'edges', k})};
@@ -273,7 +285,7 @@
     } else if (m.cmd === 'edges') {
       window.dispatchEvent(new CustomEvent('flyharp-edges', {detail: m}));
     } else if (m.cmd === 'frames') {
-      busy = false; lastDV = m.dV; lastFbc = m.fbc;
+      busy = false; lastDV = m.dV; lastFbc = m.fbc; lastPR = m.pr && m.pr.length ? m.pr : null;
       const batch = pendingBatch; pendingBatch = null;
       const events = [];
       m.steps.forEach((a, k) => { const evs = []; detect(a, batch.t0 + k * DT, evs); evs.forEach(ev => { ev.delay = k * DT / batch.tempo * 1000; events.push(ev); }); });
@@ -313,7 +325,7 @@
   // ---------------------------------------------------------------- drawing: the eye and its lenses
   const LENSES = [
     {id: 'photo', cells: 5353, name: 'Photoreceptors', col: '#d9d6ce', sub: 'the image at 721 points',
-      info: 'Each facet is one ommatidium, about 5° across. Eight photoreceptors in each look at the same point; this is their input. The fly\'s acuity is roughly a hundred times coarser than yours, but it updates far faster.'},
+      info: 'With photoreceptor adaptation on, this shows what the photoreceptors signal: contrast against their own recent mean light. Each facet is one ommatidium, about 5° across. Eight photoreceptors in each look at the same point; this is their input. The fly\'s acuity is roughly a hundred times coarser than yours, but it updates far faster.'},
     {id: 'lamina', cells: 1586, name: 'Lamina contrast', col: '#4fb3a4', sub: 'L1 + L2: change, not light', types: ['L1', 'L2'],
       info: 'L1 and L2 hyperpolarise to brightening (blue) and depolarise to dimming (orange). They report temporal contrast, so a still scene fades and edges flare when they move.'},
     {id: 'on', cells: 1655, name: 'ON channel', col: '#e0c35a', sub: 'Mi1 + Tm3: brightening', types: ['Mi1', 'Tm3'],
@@ -321,7 +333,7 @@
     {id: 'off', cells: 3032, name: 'OFF channel', col: '#e88a4f', sub: 'Tm1/2/4/9: darkening', types: ['Tm1', 'Tm2', 'Tm4', 'Tm9'],
       info: 'The transmedullary OFF cells depolarise (orange) where light decreases. They feed T5. Tm9 is slow and carries luminance from L3, so it lags the others.'},
     {id: 'motion', cells: 6100, name: 'Motion', col: '#e2576b', sub: 'T4 + T5: direction field', types: ['T4a', 'T4b', 'T4c', 'T4d', 'T5a', 'T5b', 'T5c', 'T5d'],
-      info: 'The eight T4/T5 subtypes each prefer one direction, which FlyHarp measures at start-up with moving edges. Summing their responses as vectors gives a direction field: hue is direction (see the wheel), brightness is strength. This is the input to the fly\'s optic-flow neurons.'},
+      info: 'The eight T4/T5 subtypes each prefer one direction. A linear read-out, fit to known motion, turns their responses into a direction field: hue is direction (see the wheel), brightness is strength. This is the input to the fly\'s optic-flow neurons. (A plain sum along each subtype\'s preferred direction drifts upward here, because two subtypes in this model are only weakly direction selective.)'},
     {id: 'feedback', cells: 1833, name: 'Feedback', col: '#7f8cff', sub: 'medulla → lamina loop', info: 'The feedback current from medulla-resident cells (C2, C3, Lawf and medulla interneurons) onto L1–L5, relative to grey. Blue is net inhibition, gold is net excitation. This is what shapes the timbre in the Feedback panel.'},
   ];
   // the lenses are laid out as the optic lobe is wired: one image, split by the lamina into ON and OFF streams,
@@ -372,7 +384,7 @@
     }).join('');
   }
   new ResizeObserver(() => drawWires(new Set([lens, ...LENS_UP[lens]]))).observe($('lenses'));
-  let lens = 'motion', prefDir = {}, lastFbc = null;
+  let lens = 'motion', prefDir = {}, decoder = null, lastFbc = null;
   const lensMax = {};
   function renderLenses() {
     const lit = new Set([lens, ...LENS_UP[lens]]);
@@ -419,15 +431,19 @@
     // display gain: track the 98th percentile of |value| (fast attack, slow release)
     const a = Array.from(out, Math.abs).sort((x, y) => x - y), p98 = Math.max(a[Math.floor(0.98 * (n - 1))], 1e-6);
     const m = lensMax[lens] || p98; lensMax[lens] = p98 > m ? p98 : m * 0.985 + p98 * 0.015;
-    const g = Math.max(lensMax[lens], 0.5);   // never amplify weak signals beyond half the type's response range
+    const g = Math.max(lensMax[lens], 0.2);   // never amplify weak signals beyond a fifth of the type's (as-trained) response range
     for (let k = 0; k < n; k++) out[k] = edge[k] ? 0 : out[k] / g;
     return out;
   }
   function motionField() {
     const n = X.length, vx = new Float32Array(n), vy = new Float32Array(n);
     if (!lastDV) return {vx, vy, mags: new Float32Array(n), norm: 1};
-    for (const t of Object.keys(prefDir)) {
-      const ti = types.indexOf(t), arr = nodeOf[ti], sc = scale[ti], c = Math.cos(prefDir[t]), s = Math.sin(prefDir[t]);
+    // linear read-out fitted to known motion (tools/fit_motion_decoder.js). A plain vector sum along each subtype's
+    // preferred direction is biased here: T4d and T5b are only weakly direction selective, so they push every
+    // response toward their own direction. Fallback: that vector sum.
+    for (const t of Object.keys(decoder || prefDir)) {
+      const ti = types.indexOf(t), arr = nodeOf[ti];
+      const [c, s, sc] = decoder ? [decoder[t][0], decoder[t][1], 1] : [Math.cos(prefDir[t]), Math.sin(prefDir[t]), scale[ti]];
       for (let k = 0; k < n; k++) { const d = lastDV[arr[k]] / sc; if (d > 0) { vx[k] += d * c; vy[k] += d * s; } }
     }
     let mx = 1e-6; const mags = new Float32Array(n);
@@ -435,7 +451,7 @@
     const srt = Array.from(mags).sort((a, b) => a - b); mx = Math.max(srt[Math.floor(0.98 * (n - 1))], 1e-6);
     const m = lensMax.motion || mx; lensMax.motion = mx > m ? mx : m * 0.985 + mx * 0.015;
     for (let k = 0; k < n; k++) if (edge[k]) { mags[k] = 0; vx[k] = 0; vy[k] = 0; }
-    return {vx, vy, mags, norm: Math.max(lensMax.motion, 0.5)};
+    return {vx, vy, mags, norm: Math.max(lensMax.motion, 0.05)};   // decoder units; floor only guards against amplifying noise
   }
   function drawEye() {
     if (!ready) return;
@@ -445,7 +461,8 @@
     const vals = lens === 'photo' || lens === 'motion' ? null : lensValues();
     const mf = lens === 'motion' ? motionField() : null;
     for (let i = 0; i < X.length; i++) {
-      const x = cx + X[i] * s, y = cy + Y[i] * s, g = lastLum[i] * 255;
+      // the photoreceptor lens shows what the photoreceptors signal: the adapted contrast image when adaptation is on
+      const x = cx + X[i] * s, y = cy + Y[i] * s, g = Math.min(255, ((lens === 'photo' && lastPR) ? lastPR[i] : lastLum[i]) * 255);
       let col;
       if (lens === 'photo') col = [g, g, g];
       else if (mf) {
@@ -653,4 +670,66 @@
   casC.style.cursor = 'pointer';
 
   requestAnimationFrame(tick);
+
+  // ---------------------------------------------------------------- probe: gain control in silico (js/probe.js)
+  let probeW = null, probeReady = null, lastProbe = null;
+  function setupProbe() {
+    const pref = ['Mi1', 'L2', 'Tm3', 'Tm9', 'T4b', 'T5b', 'Mi4', 'Mi9', 'Tm1', 'Tm2', 'C3', 'L3'];
+    $('pType').innerHTML = pref.concat(types.filter(t => !pref.includes(t) && !/^R\d/.test(t))).filter(t => types.includes(t))
+      .map(t => `<option>${t}</option>`).join('');
+    $('pRun').onclick = runProbe;
+    drawProbe(null);
+  }
+  function runProbe() {
+    if (!probeW) {
+      probeW = new Worker('js/probe-worker.js');
+      probeReady = new Promise(res => probeW.onmessage = e => { if (e.data.cmd === 'ready') res(); });
+      probeW.postMessage({cmd: 'init', url: new URL('data/fly.json', location.href).href});
+      $('pNote').textContent = 'building a copy of the network…';
+    }
+    const type = $('pType').value, theta = prefDir[type] ?? 0, p = gainParams();
+    $('pRun').disabled = true; $('pFill').style.width = '0%';
+    probeReady.then(() => {
+      $('pNote').textContent = `recording ${type}…`;
+      probeW.onmessage = e => {
+        const m = e.data;
+        if (m.cmd === 'progress') $('pFill').style.width = (100 * m.f).toFixed(0) + '%';
+        else if (m.cmd === 'result') { $('pRun').disabled = false; lastProbe = m; drawProbe(m); }
+      };
+      probeW.postMessage({cmd: 'probe', type, theta, p});
+    });
+  }
+  function drawProbe(m) {
+    const W = 300, H = 210, L = 44, Rr = 10, T = 38, B = 36;
+    const plot = (title, xlab, series, logx, note) => {
+      const xs = series.flatMap(s => s.pts.map(p => p[0])), ys = series.flatMap(s => s.pts.map(p => p[1]));
+      const x0 = Math.min(...xs), x1 = Math.max(...xs), y1 = Math.max(...ys, 1e-6) * 1.08;
+      const fx = v => L + (logx ? Math.log(v / x0) / Math.log(x1 / x0) : (v - x0) / (x1 - x0)) * (W - L - Rr), fy = v => H - B - v / y1 * (H - T - B);
+      const ticks = logx ? series[0].pts.map(p => p[0]) : series[0].pts.map(p => p[0]);
+      let g = `<text x="${L}" y="16" class="pt">${title}</text>`;
+      g += `<line x1="${L}" y1="${H - B}" x2="${W - Rr}" y2="${H - B}" class="ax"/><line x1="${L}" y1="${T}" x2="${L}" y2="${H - B}" class="ax"/>`;
+      g += ticks.map(v => `<text x="${fx(v)}" y="${H - B + 14}" class="tk" text-anchor="middle">${+v.toPrecision(2)}</text>`).join('');
+      g += `<text x="${(L + W - Rr) / 2}" y="${H - 6}" class="tk" text-anchor="middle">${xlab}</text>`;
+      g += `<text x="12" y="${(T + H - B) / 2}" class="tk" text-anchor="middle" transform="rotate(-90 12 ${(T + H - B) / 2})">response</text>`;
+      for (const s of series) {
+        const d = s.pts.map((p, i) => `${i ? 'L' : 'M'}${fx(p[0]).toFixed(1)},${fy(p[1]).toFixed(1)}`).join('');
+        g += `<path d="${d}" fill="none" stroke="${s.col}" stroke-width="${s.dash ? 1.5 : 2.2}" ${s.dash ? 'stroke-dasharray="4 3"' : ''}/>`;
+        if (!s.dash) g += s.pts.map(p => `<circle cx="${fx(p[0]).toFixed(1)}" cy="${fy(p[1]).toFixed(1)}" r="2.6" fill="${s.col}"/>`).join('');
+      }
+      if (note) g += `<text x="${W - Rr}" y="30" class="tk" text-anchor="end">${note}</text>`;
+      return `<svg viewBox="0 0 ${W} ${H}" class="pplot">${g}</svg>`;
+    };
+    if (!m) { $('pPlots').innerHTML = '<p class="hint">Pick a cell type and run the probe (about 10–20 s). It measures the contrast response, size tuning at 12% and 80% contrast, and the response to the same 40% contrast at different mean light levels.</p>'; return; }
+    const A = '#f0a04b', Bc = '#5aa6e8', grey = '#8d8a83';
+    const ssi = r => { const a = r.map(p => p[1]), pk = Math.max(...a); return (1 - a[a.length - 1] / pk).toFixed(2); };
+    const same = !m.p.adapt && !m.p.norm;
+    const cur = (pts, col) => ({pts, col}), base = pts => ({pts, col: grey, dash: true});
+    const crf = plot('Contrast response', 'contrast', [base(m.base.crf), ...(same ? [] : [cur(m.cur.crf, A)])], true);
+    const size = plot('Size tuning', 'radius (columns)', [base(m.base['size0.8']), base(m.base['size0.12']), ...(same ? [] : [cur(m.cur['size0.8'], A), cur(m.cur['size0.12'], Bc)])], false,
+      `SSI 80%: ${ssi(m.base['size0.8'])}→${ssi(m.cur['size0.8'])} · 12%: ${ssi(m.base['size0.12'])}→${ssi(m.cur['size0.12'])}`);
+    const lum = plot('Light level', 'mean luminance (grey = 0.5)', [base(m.base.lum), ...(same ? [] : [cur(m.cur.lum, A)])], true);
+    $('pPlots').innerHTML = crf + size + lum;
+    const on = [m.p.adapt && 'photoreceptor adaptation', m.p.norm && `normalization of the ${m.p.target === 'both' ? 'lamina and medulla' : m.p.target} (pool ${m.p.poolR}, c50 ${m.p.c50})`].filter(Boolean);
+    $('pNote').innerHTML = `${m.type}: ${on.length ? on.join(' + ') : 'gain control off, so only the trained network'} · size tuning: <span style="color:${A}">80%</span> and <span style="color:${Bc}">12%</span> contrast`;
+  }
 })();

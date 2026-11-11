@@ -58,7 +58,8 @@
       const inT = new Set(model.input_types.map(x => types.indexOf(x)));
       for (let i = 0; i < this.N; i++) if (inT.has(this.nodeType[i])) this.isInput[i] = 1;
       this.V = new Float32Array(this.N); this.R = new Float32Array(this.N); this.D = new Float32Array(this.N);
-      this.V0 = new Float32Array(this.N);
+      this.V0 = new Float32Array(this.N); this.D0 = new Float32Array(this.N);
+      this.normG = null; this.normMask = null;
       this.central = new Int32Array(nT);
       const c0 = colIdx.get('0,0');
       for (let t = 0; t < nT; t++) this.central[t] = this.nodeOf[t][c0];
@@ -74,6 +75,9 @@
         if (this.isInput[i]) acc += lum[this.nodeCol[i]];
         D[i] = acc;
       }
+      // optional divisive normalization (js/gain.js): scale the drive's deviation from its grey value per column
+      const g = this.normG;
+      if (g) { const mk = this.normMask, D0 = this.D0, col = this.nodeCol; for (let i = 0; i < N; i++) if (mk[i]) D[i] = D0[i] + (D[i] - D0[i]) * g[col[i]]; }
       for (let i = 0; i < N; i++) V[i] += this.alpha[i] * (D[i] - V[i]);
     }
 
@@ -81,9 +85,11 @@
     settle(level = 0.5, seconds = 3) {
       const lum = new Float32Array(this.nC).fill(level);
       this.V.fill(0);
-      const n = Math.round(seconds / this.dt);
+      const n = Math.round(seconds / this.dt), g = this.normG;
+      this.normG = null;
       for (let s = 0; s < n; s++) this.step(lum);
-      this.V0.set(this.V);
+      this.normG = g;
+      this.V0.set(this.V); this.D0.set(this.D);
     }
   }
   if (typeof module !== 'undefined') module.exports = FlyEngine; else root.FlyEngine = FlyEngine;

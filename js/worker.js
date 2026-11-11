@@ -1,7 +1,8 @@
 // Runs the fly network off the main thread. Messages:
 //   in  {cmd:'init', url}                      -> out {cmd:'ready', N, nE, types, groupOf..}
 //   in  {cmd:'run', frames:[Float32Array(721)]} -> out {cmd:'frames', act:[Float32Array(nT)], cx, cy, V}
-importScripts('engine.js');
+importScripts('engine.js', 'gain.js');
+let gc = null;   // optional photoreceptor adaptation + divisive normalization (js/gain.js), off by default
 let eng = null, typeNodes = null, xs = null, ys = null, region = null, regCount = null, NR = 7, scale = null;
 // medulla -> lamina feedback: synapses onto L1-L5 from medulla-resident cells (C2, C3, Lawf1/2 and medulla
 // interneurons contacting L-cell terminals). fbE*: edge index, target node; fb0: value on a grey screen
@@ -25,17 +26,25 @@ self.onmessage = async (ev) => {
     regCount = new Float32Array(eng.nT * NR);
     for (let t = 0; t < eng.nT; t++) for (const i of typeNodes[t]) regCount[t * NR + region[eng.nodeCol[i]]]++;
     setupFeedback(model);
-    scale = calibrate();
+    scale = calibrate();             // response ranges are those of the network as trained, without gain control
     eng.settle(0.5, 2);
+    gc = new GainControl(eng);
     self.postMessage({cmd: 'ready', N: eng.N, nE: eng.nE, types: model.types, x: Array.from(xs), y: Array.from(ys),
-      nodeOf: eng.nodeOf.map(a => Array.from(a)), region: Array.from(region), NR, scale: Array.from(scale), tau: model.tau, fbInfo, prefDir});
+      nodeOf: eng.nodeOf.map(a => Array.from(a)), region: Array.from(region), NR, scale: Array.from(scale), tau: model.tau, fbInfo, prefDir, decoder: model.motion_decoder || null});
   } else if (msg.cmd === 'run') {
     const out = [];
-    for (const lum of msg.frames) { eng.step(lum); out.push(withFeedback(regionActivity())); }
+    let pr = null;
+    for (const lum of msg.frames) { const L = gc.process(lum); eng.step(L); out.push(withFeedback(regionActivity())); pr = L; }
+    pr = gc.p.adapt ? Float32Array.from(pr) : new Float32Array(0);
     const dV = new Float32Array(eng.N);
     for (let i = 0; i < eng.N; i++) dV[i] = eng.V[i] - eng.V0[i];
     const fbc = feedbackCols();
-    self.postMessage({cmd: 'frames', steps: out, dV, fbc}, [dV.buffer, fbc.buffer]);
+    self.postMessage({cmd: 'frames', steps: out, dV, fbc, pr}, [dV.buffer, fbc.buffer, pr.buffer]);
+  } else if (msg.cmd === 'gain') {
+    if (!gc) return;
+    const was = gc.p.adapt;
+    gc.set(msg.p);
+    if (gc.p.adapt !== was) gc.reset(0.5);
   } else if (msg.cmd === 'edges') {
     // the k strongest inputs onto every neuron, for the 3D ball-and-stick view
     const k = msg.k || 2, S = [], T = [], W = [];
@@ -48,7 +57,7 @@ self.onmessage = async (ev) => {
     const src = Int32Array.from(S), tgt = Int32Array.from(T), w = Float32Array.from(W);
     self.postMessage({cmd: 'edges', src, tgt, w}, [src.buffer, tgt.buffer, w.buffer]);
   } else if (msg.cmd === 'reset') {
-    eng.settle(0.5, 2);
+    eng.settle(0.5, 2); gc.reset(0.5);
   }
 };
 

@@ -148,3 +148,17 @@ label.small{font-size:12.5px;margin:3px 0}
 .lobeCount{position:absolute;left:12px;bottom:10px;font:700 9.5px/1.2 "Courier Prime","Courier New",monospace;letter-spacing:.1em;text-transform:uppercase;color:#7d838d;pointer-events:none}
 .legend .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px;vertical-align:-1px}
 @media(max-width:800px){.lobeWrap{height:62vh}}
+/* gain control controls */
+aside .sub{border-left:2px solid var(--line);padding-left:10px;margin:2px 0 8px 4px}
+aside .sub.off{opacity:.45}
+/* probe */
+.probe{margin:6px 0 22px}
+.probeTools{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:6px 0 10px}
+.probeTools label{margin:0;gap:6px}.probeTools select{width:auto}
+.pBar{display:inline-block;width:120px;height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.pBar i{display:block;height:100%;width:0;background:var(--acc);transition:width .2s}
+.probePlots{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;max-width:1180px}
+.pplot{width:100%;height:auto;background:#0a0b0d;border:1px solid var(--line);border-radius:10px}
+.pplot .ax{stroke:#3a3e48;stroke-width:1}
+.pplot .pt{fill:var(--ink);font-size:12.5px;font-weight:600}
+.pplot .tk{fill:var(--muted);font-size:10px}
