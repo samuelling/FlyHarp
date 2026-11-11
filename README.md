@@ -4,6 +4,8 @@ A synthesizer played by the *Drosophila* visual system. A stimulus (or your webc
 
 **Play:** https://samuelling.github.io/FlyHarp/ (GitHub Pages from `main`, root)
 
+**Layout.** The page leads with *What its Connectome Sees* (the eye, its lenses and wiring), then *What its Connectome Hears* (the ear pictures and the piano roll). Every control lives in a drawer on the right, in four tabs: Stimulus, Instrument, Hearing and Model. Tap or drag its edge tab, or press Tab. On wide screens it opens by default and the page narrows beside it.
+
 ## How it works
 
 - **The fly.** This is the best model of the 50-model flyvis ensemble (Lappalainen et al., *Nature* 2024): 45,669 neurons in 65 cell types and 1.45 M synapses on a 721-column hex eye. Its wiring comes from the FIB-SEM optic-lobe connectome, and its cell and synapse parameters were trained so the network computes optic flow. Every pair of cell types connects through one spatial filter that repeats at every column, so the whole network ships as 2,355 filters (`data/fly.json`, 57 kB). The browser rebuilds it and integrates it in a Web Worker at 20 ms per step (about 2.5 ms of compute per step). The JS port matches PyTorch to a median correlation of 1.000 (minimum 0.996 across cell types; `tools/validate_engine.js`).
