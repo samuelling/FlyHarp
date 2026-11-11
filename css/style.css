@@ -88,7 +88,7 @@ figcaption{line-height:1.6}
 .hero{display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap;margin-bottom:16px}
 .heroLeft{flex:0 1 640px;min-width:300px;display:flex;flex-direction:column;gap:14px}
 .heroEye{position:relative}
-.heroEye #eye{width:100%;border-radius:16px;cursor:crosshair;touch-action:none;background:radial-gradient(circle at 50% 45%,#15171c,#07080a 70%)}
+.heroEye #eye{width:100%;border-radius:16px;background:radial-gradient(circle at 50% 45%,#15171c,#07080a 70%)}
 .lensTag{position:absolute;left:14px;top:12px;font-size:12px;color:#cfccc4;background:#0b0c0fcc;border:1px solid var(--line);border-radius:12px;padding:3px 10px;pointer-events:none}
 .raw{position:absolute;right:12px;bottom:12px;margin:0;width:150px}
 .raw canvas{width:150px;border-radius:8px;border:1px solid #333845}
@@ -185,3 +185,4 @@ label.small{font-size:12.5px;margin:3px 0}
 .tnArtFig canvas{width:100%;aspect-ratio:1;border-radius:12px;background:#08090b}
 .tnViews{display:flex;flex-wrap:wrap;gap:4px;margin:8px 0 4px}
 .tnViews button.on{border-color:var(--acc);color:var(--acc)}
+.heroEye #eye.painting{cursor:crosshair;touch-action:none}

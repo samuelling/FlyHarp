@@ -63,7 +63,8 @@
   }
   $('kind').onchange = async () => {
     P.kind = $('kind').value;
-    $('eyehint').textContent = P.kind === 'paint' ? 'Drag on the eye to draw; polarity sets dark or bright.' : 'Tip: drag on the eye to draw on it.';
+    $('eyehint').textContent = P.kind === 'paint' ? 'Drag on the eye to draw; polarity sets dark or bright.' : '';
+    eye.classList.toggle('painting', P.kind === 'paint');   // crosshair, and no page scrolling while drawing
     if (P.kind === 'webcam') await useCamera();
   };
   // the webcam is the default eye; if the camera is refused or missing, fall back to a drifting grating
@@ -555,7 +556,8 @@
     const r = eye.getBoundingClientRect(), s = eyeScale() * r.width / eye.width;
     Stimuli.addPaint((e.clientX - r.left - r.width / 2) / s, -(e.clientY - r.top - r.height / 2) / s, simT, P.polarity);
   };
-  eye.addEventListener('pointerdown', e => { if (P.kind !== 'paint') { $('kind').value = 'paint'; $('kind').onchange(); } drawing = true; eye.setPointerCapture(e.pointerId); paintAt(e); });
+  // drawing on the eye only when "draw on the eye" is the chosen stimulus
+  eye.addEventListener('pointerdown', e => { if (P.kind !== 'paint') return; drawing = true; eye.setPointerCapture(e.pointerId); paintAt(e); });
   eye.addEventListener('pointermove', e => { if (drawing) paintAt(e); });
   eye.addEventListener('pointerup', () => drawing = false);
 
