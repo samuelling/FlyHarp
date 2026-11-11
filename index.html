@@ -49,9 +49,18 @@
 </header>
 
 <main>
-  <aside id="controls">
-    <section>
-      <h2>Eye</h2>
+
+  <section id="stage">
+    <section class="hero">
+      <div class="heroLeft">
+      <div class="heroEye">
+        <canvas id="eye" width="640" height="640"></canvas>
+        <div class="lensTag" id="lensTag"></div>
+        <figure class="raw"><canvas id="raw" width="200" height="150"></canvas><figcaption>what you see</figcaption></figure>
+      </div>
+      <section class="card stimbar" aria-label="Stimulus">
+      <h3>What the eye is shown</h3>
+      <div class="stimGrid">
       <label>stimulus
         <select id="kind">
           <option value="webcam" selected>webcam</option>
@@ -69,76 +78,8 @@
       <label>direction <input type="range" id="direction" min="0" max="345" step="15" value="0"><output></output></label>
       <label class="row">polarity
         <span class="seg"><button data-pol="1">ON</button><button data-pol="-1" class="on">OFF</button></span></label>
-      <label>eye geometry <select id="eyeGeom"><option value="lattice">idealized lattice (flyvis)</option><option value="real">real eye (micro-CT, Zhao et al. 2025)</option></select></label>
-      <label>light level <input type="range" id="light" min="-4" max="1.5" step="0.25" value="0"><output></output></label>
+      <label>light level <input type="range" id="light" min="-4" max="1.5" step="0.25" value="0"><output></output></label></div>
     </section>
-    <section>
-      <h2>Gain control</h2>
-      <p class="hint">The trained network has none: it is linear above threshold, so responses scale with light and contrast without limit, and its surrounds only subtract. These two stages add it. Both are additions to the trained model.</p>
-      <label class="row"><input type="checkbox" id="gAdapt"> photoreceptor adaptation</label>
-      <div class="sub" id="gAdaptBox">
-        <label>adaptation time <input type="range" id="gTauA" min="0.1" max="3" step="0.1" value="0.5"><output></output></label>
-        <label>half-saturating contrast <input type="range" id="gK" min="0.2" max="4" step="0.1" value="1"><output></output></label>
-        <p class="hint">Each ommatidium adapts to its own mean light and signals Weber contrast, compressed. Hold still in front of the camera and the image fades; look at something bright, then away, and you see an afterimage.</p>
-      </div>
-      <label class="row"><input type="checkbox" id="gNorm"> divisive normalization</label>
-      <div class="sub" id="gNormBox">
-        <label>divides the drive onto <select id="gTarget"><option value="lamina">lamina: L1–L3</option><option value="medulla">medulla: Mi1, Tm3, Mi4, Mi9, Tm1, Tm2, Tm4, Tm9</option><option value="both" selected>both</option></select></label>
-        <label>pool size (columns, sd) <input type="range" id="gPool" min="0.5" max="6" step="0.5" value="3"><output></output></label>
-        <label>c50 <input type="range" id="gC50" min="0.05" max="1" step="0.05" value="0.25"><output></output></label>
-        <label>pool time constant (ms) <input type="range" id="gTauN" min="20" max="400" step="20" value="80"><output></output></label>
-        <p class="hint">Each column's drive is divided by the local contrast energy, pooled over a Gaussian of neighbouring columns: response ∝ c / (1 + c / c50). A pool wider than the receptive field gives surround suppression that grows with contrast. In this model Mi1 takes most of its drive straight from R8, so normalizing the lamina alone barely reaches the T4 pathway.</p>
-      </div>
-    </section>
-    <section>
-      <h2>Time</h2>
-      <label>tempo (× real fly time) <input type="range" id="tempo" min="0.05" max="1.5" step="0.05" value="0.35"><output></output></label>
-      <p class="hint">Slow the fly down and each flash becomes an arpeggio: retina → lamina → medulla → lobula plate.</p>
-      <button id="reset" class="small">reset network</button>
-    </section>
-    <section>
-      <h2>Hierarchy</h2>
-      <p class="hint">Each area is an instrument family; each cell type a variant of it, with an envelope set by that cell's membrane time constant. Click chips, or the maps in the cascade, to string or unstring a cell type.</p>
-      <div class="presets"><button data-pre="cascade">cascade</button><button data-pre="motion">motion</button><button data-pre="early">retina + lamina</button><button data-pre="all">all</button><button data-pre="none">none</button></div>
-      <div id="hier"></div>
-      <label>threshold <input type="range" id="thresh" min="0.03" max="0.6" step="0.01" value="0.15"><output></output></label>
-      <label class="row"><input type="checkbox" id="spatial" checked> one string per eye region (7)</label>
-      <label>max notes / s <input type="range" id="rate" min="4" max="60" step="1" value="24"><output></output></label>
-    </section>
-    <section>
-      <h2>Feedback</h2>
-      <p class="hint" id="fbHint">Medulla → lamina feedback shapes the timbre: net inhibitory feedback damps notes (darker, shorter), net excitatory feedback brightens them.</p>
-      <label class="row"><input type="checkbox" id="fbOn" checked> feedback colours timbre</label>
-      <label>depth <input type="range" id="fbDepth" min="0" max="2" step="0.1" value="1"><output></output></label>
-      <label>applies to <select id="fbTarget"><option value="1">lamina</option><option value="01">retina + lamina</option><option value="01234">all areas</option></select></label>
-      <canvas id="fbMeter" width="260" height="46"></canvas>
-      <p class="hint">feedback per eye region (sectors as seen on the eye)</p>
-    </section>
-    <section>
-      <h2>Pitch</h2>
-      <label>scale <select id="scale">
-        <option value="majpent">major pentatonic</option><option value="minpent">minor pentatonic</option>
-        <option value="dorian">dorian</option><option value="lydian">lydian</option><option value="hirajoshi">hirajoshi</option>
-        <option value="whole">whole tone</option><option value="chromatic">chromatic</option></select></label>
-      <label>root <select id="root"></select></label>
-      <label>octave per layer <input type="range" id="spread" min="0" max="2" step="0.5" value="1"><output></output></label>
-    </section>
-    <section>
-      <h2>Output</h2>
-      <label class="row"><input type="checkbox" id="internal" checked> internal harp</label>
-      <label>volume <input type="range" id="vol" min="0" max="1" step="0.05" value="0.7"><output></output></label>
-      <label>reverb <input type="range" id="rev" min="0" max="1" step="0.05" value="0.35"><output></output></label>
-      <label>MIDI out <select id="midiOut"><option value="">none</option></select></label>
-      <label>MIDI channels <select id="midiCh"><option value="layer">per area: depol 1–5, hyperpol 6–10</option><option value="single">depol on 1, hyperpol on 2</option></select></label>
-    </section>
-  </aside>
-
-  <section id="stage">
-    <section class="hero">
-      <div class="heroEye">
-        <canvas id="eye" width="640" height="640"></canvas>
-        <div class="lensTag" id="lensTag"></div>
-        <figure class="raw"><canvas id="raw" width="200" height="150"></canvas><figcaption>what you see</figcaption></figure>
       </div>
       <div class="lensPanel">
         <h2 class="heroTitle">What the fly sees</h2>
@@ -151,6 +92,47 @@
         <label class="row small"><input type="checkbox" id="arrows" checked> motion arrows</label>
         <p class="hint" id="eyehint"></p>
       </div>
+    </section>
+    <section class="card instrument">
+      <div class="cardHead"><h2 class="heroTitle">The instrument</h2>
+        <p class="lead">How the simulation is played: which cells are strings, how they are tuned and voiced, and what you hear.</p></div>
+      <div class="mixer">
+      <p class="hint">Each area is an instrument family; each cell type a variant of it, with an envelope set by that cell's membrane time constant. Click chips, or the maps in the cascade, to string or unstring a cell type.</p>
+      <div class="presets"><button data-pre="cascade">cascade</button><button data-pre="motion">motion</button><button data-pre="early">retina + lamina</button><button data-pre="all">all</button><button data-pre="none">none</button></div>
+      <div id="hier"></div></div>
+      <div class="ctlGrid">
+        <div class="grp "><h3>Strings and time</h3>
+      <label>tempo (× real fly time) <input type="range" id="tempo" min="0.05" max="1.5" step="0.05" value="0.35"><output></output></label>
+      <p class="hint">Slow the fly down and each flash becomes an arpeggio: retina → lamina → medulla → lobula plate.</p>
+      
+      <label>threshold <input type="range" id="thresh" min="0.03" max="0.6" step="0.01" value="0.15"><output></output></label>
+      <label class="row"><input type="checkbox" id="spatial" checked> one string per eye region (7)</label>
+      <label>max notes / s <input type="range" id="rate" min="4" max="60" step="1" value="24"><output></output></label></div>
+                <div class="grp "><h3>Pitch</h3>
+      <label>scale <select id="scale">
+        <option value="majpent">major pentatonic</option><option value="minpent">minor pentatonic</option>
+        <option value="dorian">dorian</option><option value="lydian">lydian</option><option value="hirajoshi">hirajoshi</option>
+        <option value="whole">whole tone</option><option value="chromatic">chromatic</option></select></label>
+      <label>root <select id="root"></select></label>
+      <label>octave per layer <input type="range" id="spread" min="0" max="2" step="0.5" value="1"><output></output></label></div>
+        <div class="grp "><h3>Feedback as timbre</h3>
+      <p class="hint" id="fbHint">Medulla → lamina feedback shapes the timbre: net inhibitory feedback damps notes (darker, shorter), net excitatory feedback brightens them.</p>
+      <label class="row"><input type="checkbox" id="fbOn" checked> feedback colours timbre</label>
+      <label>depth <input type="range" id="fbDepth" min="0" max="2" step="0.1" value="1"><output></output></label>
+      <label>applies to <select id="fbTarget"><option value="1">lamina</option><option value="01">retina + lamina</option><option value="01234">all areas</option></select></label>
+      <canvas id="fbMeter" width="260" height="46"></canvas>
+      <p class="hint">feedback per eye region (sectors as seen on the eye)</p></div>
+        <div class="grp "><h3>Output</h3>
+      <label class="row"><input type="checkbox" id="internal" checked> internal harp</label>
+      <label>volume <input type="range" id="vol" min="0" max="1" step="0.05" value="0.7"><output></output></label>
+      <label>reverb <input type="range" id="rev" min="0" max="1" step="0.05" value="0.35"><output></output></label>
+      <label>MIDI out <select id="midiOut"><option value="">none</option></select></label>
+      <label>MIDI channels <select id="midiCh"><option value="layer">per area: depol 1–5, hyperpol 6–10</option><option value="single">depol on 1, hyperpol on 2</option></select></label></div>
+      </div>
+      <figure class="rollbox">
+      <canvas id="roll" width="1180" height="260"></canvas>
+      <figcaption class="legend"><span><i class="sw fill"></i>depolarisation</span><span><i class="sw hollow"></i>hyperpolarisation (octave down, swells in)</span><span class="muted">bands: each area's pitch range · time runs right → left</span></figcaption>
+    </figure>
     </section>
     <section class="lobeBox">
       <div class="lobeHead">
@@ -166,21 +148,41 @@
       </div>
       <figcaption class="legend"><span><i class="dot" style="background:#ffb44f"></i>depolarised</span><span><i class="dot" style="background:#4f9cff"></i>hyperpolarised</span><span><i class="sw" style="background:#ffae42"></i>synapse pushing its target up</span><span><i class="sw" style="background:#6a7dff"></i>pushing it down</span><span class="muted">sticks fade toward the cell they drive · layout is schematic: each area is a curved sheet of the eye's 721 columns, cell types in sublayers, the map flipped by each optic chiasm</span></figcaption>
     </section>
-    <figure class="rollbox">
-      <canvas id="roll" width="1180" height="260"></canvas>
-      <figcaption class="legend"><span><i class="sw fill"></i>depolarisation</span><span><i class="sw hollow"></i>hyperpolarisation (octave down, swells in)</span><span class="muted">bands: each area's pitch range · time runs right → left</span></figcaption>
-    </figure>
     <figure>
       <canvas id="cascade" width="1180" height="432"></canvas>
       <figcaption class="legend"><span><i class="grad"></i>hyperpolarised · grey · depolarised (relative to a grey screen)</span><span><i class="ring"></i>pluck</span><span><i class="ring dash"></i>hyperpolarisation pluck</span><span class="muted">bright = strung · click a map to string it · hover for what each cell does</span></figcaption>
     </figure>
-    <section class="probe">
+    <section class="card model">
+      <div class="cardHead"><h2 class="heroTitle">The model</h2>
+        <p class="lead">What is being simulated: the eye, the trained optic-lobe network, and optional gain control around it. The trained network has none of its own: it is linear above threshold, so responses scale with light and contrast without limit, and its surrounds only subtract. The two gain-control stages are additions to the trained model. Probe any of it like a physiologist below.</p></div>
+      <div class="ctlGrid">
+        <div class="grp "><h3>Eye</h3><label>eye geometry <select id="eyeGeom"><option value="lattice">idealized lattice (flyvis)</option><option value="real">real eye (micro-CT, Zhao et al. 2025)</option></select></label><p class="hint" id="geomHint">The flyvis eye is a flat, regular hex grid. The real eye places each column where a measured ommatidium looks.</p></div>
+        <div class="grp "><h3>Network</h3><p class="hint">45,669 neurons, 65 cell types, 1.45M synapses: the best flyvis model (Lappalainen et al. 2024), stepped every 20 ms of fly time.</p><button id="reset" class="small">reset network</button></div>
+        <div class="grp"><h3>Gain control · photoreceptors</h3>
+      <label class="row"><input type="checkbox" id="gAdapt"> photoreceptor adaptation</label>
+      <div class="sub" id="gAdaptBox">
+        <label>adaptation time <input type="range" id="gTauA" min="0.1" max="3" step="0.1" value="0.5"><output></output></label>
+        <label>half-saturating contrast <input type="range" id="gK" min="0.2" max="4" step="0.1" value="1"><output></output></label>
+        <p class="hint">Each ommatidium adapts to its own mean light and signals Weber contrast, compressed. Hold still in front of the camera and the image fades; look at something bright, then away, and you see an afterimage.</p>
+      </div>
+      </div>
+        <div class="grp"><h3>Gain control · normalization</h3><label class="row"><input type="checkbox" id="gNorm"> divisive normalization</label>
+      <div class="sub" id="gNormBox">
+        <label>divides the drive onto <select id="gTarget"><option value="lamina">lamina: L1–L3</option><option value="medulla">medulla: Mi1, Tm3, Mi4, Mi9, Tm1, Tm2, Tm4, Tm9</option><option value="both" selected>both</option></select></label>
+        <label>pool size (columns, sd) <input type="range" id="gPool" min="0.5" max="6" step="0.5" value="3"><output></output></label>
+        <label>c50 <input type="range" id="gC50" min="0.05" max="1" step="0.05" value="0.25"><output></output></label>
+        <label>pool time constant (ms) <input type="range" id="gTauN" min="20" max="400" step="20" value="80"><output></output></label>
+        <p class="hint">Each column's drive is divided by the local contrast energy, pooled over a Gaussian of neighbouring columns: response ∝ c / (1 + c / c50). A pool wider than the receptive field gives surround suppression that grows with contrast. In this model Mi1 takes most of its drive straight from R8, so normalizing the lamina alone barely reaches the T4 pathway.</p>
+      </div></div>
+      </div>
+      <section class="probe">
       <div class="probeHead">
         <h2 class="heroTitle">Probe the gain control</h2>
-        <p class="lead">In-silico physiology on a copy of the network: a drifting grating in a disk over the centre of the eye, recorded from the central cell of one type. Dashed is the network as trained; solid is with the gain control set on the left.</p>
+        <p class="lead">In-silico physiology on a copy of the network: a drifting grating in a disk over the centre of the eye, recorded from the central cell of one type. Dashed is the network as trained; solid is with the gain control set above.</p>
         <div class="probeTools"><label class="row">cell type <select id="pType"></select></label><button class="small" id="pRun">run probe</button><span class="pBar"><i id="pFill"></i></span><span id="pNote" class="hint"></span></div>
       </div>
       <div class="probePlots" id="pPlots"></div>
+    </section>
     </section>
     <details class="about">
       <summary>What am I hearing?</summary>

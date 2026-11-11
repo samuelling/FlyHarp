@@ -2,15 +2,26 @@
   --g0:#8f7fd6;--g1:#4fb3a4;--g2:#e0c35a;--g3:#e88a4f;--g4:#e2576b}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Helvetica,Arial,sans-serif}
-header{display:flex;align-items:center;gap:18px;padding:12px 20px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+header{display:flex;align-items:center;gap:18px;padding:12px 20px;border-bottom:1px solid var(--line);flex-wrap:wrap;background:var(--bg)}
 
 .go{background:var(--acc);color:#1a1206;border:0;border-radius:20px;padding:8px 18px;font:600 14px inherit;cursor:pointer}
 .go.playing{background:#2c2f38;color:var(--ink)}
 .status{color:var(--muted);font-size:12.5px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:4px 12px}
-main{display:flex;gap:0;min-height:calc(100vh - 60px)}
-aside{width:290px;flex:0 0 290px;border-right:1px solid var(--line);padding:6px 16px 30px;overflow-y:auto;max-height:calc(100vh - 60px)}
-aside section{border-bottom:1px solid var(--line);padding:10px 0 12px}
-aside h2{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin:4px 0 8px;font-weight:600}
+main{display:block;min-height:calc(100vh - 60px)}
+/* cards: the stimulus strip, the instrument, the model */
+.card{background:#111317;border:1px solid var(--line);border-radius:16px;padding:14px 18px 16px;margin:0 0 22px}
+.card .cardHead{margin-bottom:6px}
+.card h3,.grp h3{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin:2px 0 8px;font-weight:600}
+.ctlGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px;margin:12px 0 14px;align-items:start}
+.grp{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.grp.wide{grid-column:span 2}
+@media(max-width:620px){.grp.wide{grid-column:auto}}
+.stimbar{padding:10px 16px 8px;margin:0}
+.stimGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:0 18px;align-items:end}
+.stimGrid label{margin:4px 0}
+.mixer #hier{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px}
+.mixer #hier .area{margin:0}
+.instrument .rollbox{margin:4px 0 0}
 label{display:grid;grid-template-columns:1fr auto;gap:2px 8px;align-items:center;margin:6px 0;font-size:13px}
 label input[type=range]{grid-column:1/-1;width:100%;accent-color:var(--acc)}
 label output{color:var(--muted);font-variant-numeric:tabular-nums;font-size:12px;grid-row:1;grid-column:2}
@@ -22,7 +33,7 @@ select{background:var(--panel);color:var(--ink);border:1px solid var(--line);bor
 .seg button.on{background:#2c2f38;color:var(--ink)}
 button.small{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:4px 10px;cursor:pointer;font:inherit;font-size:12px}
 .hint{color:var(--muted);font-size:12px;margin:4px 0}
-#stage{flex:1;padding:14px 18px;min-width:0}
+#stage{padding:14px 18px;min-width:0;max-width:1480px;margin:0 auto}
 .top{display:flex;gap:16px;flex-wrap:wrap}
 figure{margin:0 0 14px}
 figcaption{color:var(--muted);font-size:12px;margin-top:4px}
@@ -32,9 +43,9 @@ canvas{background:#0a0b0d;border:1px solid var(--line);border-radius:10px;displa
 #cascade{width:100%}
 .about{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px;max-width:900px;color:#cfccc4}
 .about summary{cursor:pointer;color:var(--ink)}
-@media(max-width:800px){main{flex-direction:column}aside{width:auto;flex:none;max-height:none;border-right:0;border-top:1px solid var(--line);order:2}.eyebox canvas{width:100%}
+@media(max-width:800px){.eyebox canvas{width:100%}.card{padding:12px 12px 14px}
   /* phones: the camera / fly's-eye view comes first, controls follow below */
-  #stage{order:1;padding:10px 10px 14px}.hero{gap:12px}.heroEye{flex:1 1 100%;min-width:0}
+  #stage{padding:10px 10px 14px}.hero{gap:12px}.heroLeft{flex:1 1 100%;min-width:0}
   .raw{width:34%;right:8px;bottom:8px}.raw canvas{width:100%}
   .heroTitle{font-size:22px}.logo{font-size:32px}}
 
@@ -50,7 +61,7 @@ canvas{background:#0a0b0d;border:1px solid var(--line);border-radius:10px;displa
 .area .sm.mute.on{background:#c0504d;border-color:#c0504d;color:#fff}
 .area .row2{display:flex;gap:6px;align-items:center;margin:5px 0 4px}
 .area .row2 select{width:auto;flex:1;font-size:12px;padding:2px 4px}
-.area .row2 input{flex:1;accent-color:var(--acc)}
+.area .row2 input{flex:1;min-width:0;accent-color:var(--acc)}
 .chips{display:flex;flex-wrap:wrap;gap:3px}
 .chip{font-size:10.5px;padding:1px 6px;border-radius:9px;border:1px solid var(--line);color:var(--muted);background:transparent;cursor:pointer;font-family:inherit}
 .chip.on{color:#111}
@@ -74,7 +85,8 @@ figcaption{line-height:1.6}
 #fbMeter{width:100%;height:auto;margin-top:4px;background:#0f1115}
 
 .hero{display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap;margin-bottom:16px}
-.heroEye{position:relative;flex:0 1 640px;min-width:300px}
+.heroLeft{flex:0 1 640px;min-width:300px;display:flex;flex-direction:column;gap:14px}
+.heroEye{position:relative}
 .heroEye #eye{width:100%;border-radius:16px;cursor:crosshair;touch-action:none;background:radial-gradient(circle at 50% 45%,#15171c,#07080a 70%)}
 .lensTag{position:absolute;left:14px;top:12px;font-size:12px;color:#cfccc4;background:#0b0c0fcc;border:1px solid var(--line);border-radius:12px;padding:3px 10px;pointer-events:none}
 .raw{position:absolute;right:12px;bottom:12px;margin:0;width:150px}
@@ -149,8 +161,9 @@ label.small{font-size:12.5px;margin:3px 0}
 .legend .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px;vertical-align:-1px}
 @media(max-width:800px){.lobeWrap{height:62vh}}
 /* gain control controls */
-aside .sub{border-left:2px solid var(--line);padding-left:10px;margin:2px 0 8px 4px}
-aside .sub.off{opacity:.45}
+
+.sub{border-left:2px solid var(--line);padding-left:10px;margin:2px 0 8px 4px}
+.sub.off{opacity:.45}
 /* probe */
 .probe{margin:6px 0 22px}
 .probeTools{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:6px 0 10px}
