@@ -6,7 +6,7 @@
 <title>FlyHarp · a synthesizer played by the fly visual system</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bowlby+One+SC&family=Courier+Prime:wght@400;700&family=Spline+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=202611110157">
+<link rel="stylesheet" href="css/style.css?v=202611110214">
 </head>
 <body>
 <header>
@@ -71,6 +71,7 @@
           <option value="dots">drifting dots</option>
           <option value="flash">full-field flashes</option>
           <option value="paint">draw on the eye</option>
+          <option value="ear">what the fly hears (The Tonnectome)</option>
         </select></label>
       <label>contrast <input type="range" id="contrast" min="0.05" max="1" step="0.05" value="0.8"><output></output></label>
       <label>size <input type="range" id="size" min="2" max="16" step="1" value="8"><output></output></label>
@@ -88,7 +89,7 @@
         <div class="lensInfo" id="lensInfo"></div>
         <div class="lensLegend" id="lensLegend"></div>
         <p class="hint hourglass">The shape down the left edge is the population at each stage of one optic lobe (FlyWire v783): 5,353 photoreceptors squeeze into 1,586 L1/L2 cells, then fan out to 4,687 ON/OFF medulla cells and 6,100 T4/T5. Per column that is 8 → 2 → 6 → 8: the lamina is the waist of the hourglass.</p>
-        <label class="row small"><input type="checkbox" id="underlay" checked> show the image under the signal</label>
+        <label class="row small"><input type="checkbox" id="underlay"> show the image under the signal</label>
         <label class="row small"><input type="checkbox" id="arrows" checked> motion arrows</label>
         <p class="hint" id="eyehint"></p>
       </div>
@@ -133,6 +134,31 @@
       <canvas id="roll" width="1180" height="260"></canvas>
       <figcaption class="legend"><span><i class="sw fill"></i>depolarisation</span><span><i class="sw hollow"></i>hyperpolarisation (octave down, swells in)</span><span class="muted">bands: each area's pitch range · time runs right → left</span></figcaption>
     </figure>
+    </section>
+    <section class="card tonnectome">
+      <div class="cardHead"><h2 class="heroTitle">The Tonnectome</h2>
+        <p class="lead">The fly's ears listen to its eyes. Everything the instrument plays goes into a model of the fly's antennae and early auditory network, wired from the FlyWire connectome. Below is what it hears, drawn two ways; send either picture back into the eye and sight becomes sound becomes sight again.</p></div>
+      <div class="tnRow">
+        <figure class="tnFig"><canvas id="tnCoch" width="720" height="260"></canvas>
+          <figcaption>What each antenna picks up: 40 Hz to 1.6 kHz, low at the bottom, time running right to left over 2.4 s.</figcaption></figure>
+        <figure class="tnFig"><canvas id="tnBrain" width="560" height="260"></canvas>
+          <figcaption><span class="tk" style="color:#4fb3a4">●</span> Johnston's organ (the ear) <span class="tk" style="color:#e0c35a">●</span> 2nd <span class="tk" style="color:#e88a4f">●</span> 3rd <span class="tk" style="color:#e2576b">●</span> 4th step into the brain · frontal view, each dot a neuron where it sits, bright when active</figcaption></figure>
+      </div>
+      <div class="ctlGrid">
+        <div class="grp"><h3>The ears hear</h3>
+          <label>source <select id="tnSource"><option value="own">the instrument</option><option value="mic">the microphone</option><option value="both">both</option></select></label>
+          <label>level <input type="range" id="tnLevel" min="0" max="3" step="0.05" value="1"><output></output></label>
+          <p class="hint" id="tnNote">loading the auditory connectome…</p></div>
+        <div class="grp"><h3>Back into the eye</h3>
+          <label>picture <select id="tnView"><option value="coch">what the antennae hear (scrolls across the eye)</option><option value="brain">the auditory network, lit up</option></select></label>
+          <label>mix into the stimulus <input type="range" id="tnMix" min="0" max="1" step="0.05" value="0"><output>0.00</output></label>
+          <p class="hint">Or choose <i>what the fly hears</i> as the stimulus. The loop runs through the instrument, so its volume, tempo and strings all change what comes back.</p></div>
+        <div class="grp"><h3>Auditory network</h3>
+          <label>gain <input type="range" id="tnGain" min="1" max="20" step="0.5" value="8"><output>8</output></label>
+          <p class="hint" id="tnStats"></p></div>
+        <div class="grp"><h3>What this model is</h3>
+          <p class="hint">Wiring and transmitter signs are FlyWire's, measured. Nothing else is fitted. Johnston's organ neurons are tuned by subgroup (A high, B low, D broad; C and E sense sustained deflection, here the slow loudness), each normalized by the energy across its antenna. Downstream cells are a rate network with hand-set gain and time constants (5–60 ms by step).</p></div>
+      </div>
     </section>
     <section class="lobeBox">
       <div class="lobeHead">
@@ -208,12 +234,14 @@
   </section>
 </main>
 <div id="tip" class="tip" role="tooltip"></div>
-<script>window.FH_V = '202611110157';  /* build stamp, set by tools/stamp.py: versions workers, worklet and data too */</script>
-<script src="js/info.js?v=202611110157"></script>
-<script src="js/stimuli.js?v=202611110157"></script>
-<script src="js/eyegeom.js?v=202611110157"></script>
-<script src="js/audio.js?v=202611110157"></script>
-<script src="js/app.js?v=202611110157"></script>
-<script type="module" src="js/lobe.js?v=202611110157"></script>
+<script>window.FH_V = '202611110214';  /* build stamp, set by tools/stamp.py: versions workers, worklet and data too */</script>
+<script src="js/info.js?v=202611110214"></script>
+<script src="js/stimuli.js?v=202611110214"></script>
+<script src="js/eyegeom.js?v=202611110214"></script>
+<script src="js/ear-net.js?v=202611110214"></script>
+<script src="js/tonnectome.js?v=202611110214"></script>
+<script src="js/audio.js?v=202611110214"></script>
+<script src="js/app.js?v=202611110214"></script>
+<script type="module" src="js/lobe.js?v=202611110214"></script>
 </body>
 </html>

@@ -1,6 +1,7 @@
 // Sound out: internal multi-timbral voices (AudioWorklet) + Web MIDI.
 const Sound = (() => {
-  let ctx = null, node = null, master = null, wet = null, dry = null, ready = false;
+  let ctx = null, node = null, master = null, wet = null, dry = null, bus = null, ready = false;
+  let ear = null;   // The Tonnectome: {node, own, mic, micSrc} — the fly's antenna listening to the instrument and/or the microphone
   let midi = null, out = null;
   const pending = [];
 
@@ -8,9 +9,10 @@ const Sound = (() => {
     if (ctx) { if (ctx.state === 'suspended') await ctx.resume(); return true; }
     ctx = new (window.AudioContext || window.webkitAudioContext)();
     master = ctx.createGain(); master.gain.value = 0.7; master.connect(ctx.destination);
-    dry = ctx.createGain(); dry.gain.value = 0.8; dry.connect(master);
+    bus = ctx.createGain(); bus.connect(master);            // everything the instrument makes, before the volume control
+    dry = ctx.createGain(); dry.gain.value = 0.8; dry.connect(bus);
     const rev = ctx.createConvolver(); rev.buffer = impulse(3.2, 2.5);
-    wet = ctx.createGain(); wet.gain.value = 0.35; rev.connect(wet); wet.connect(master);
+    wet = ctx.createGain(); wet.gain.value = 0.35; rev.connect(wet); wet.connect(bus);
     try {
       await ctx.audioWorklet.addModule('js/voices-worklet.js' + (window.FH_V ? '?v=' + window.FH_V : ''));
       node = new AudioWorkletNode(ctx, 'voices', {outputChannelCount: [2]});
@@ -59,7 +61,34 @@ const Sound = (() => {
   }
   function setOutput(id) { out = midi && id ? midi.outputs.get(id) || null : null; }
   function allNotesOff() { if (out) for (let c = 0; c < 16; c++) out.send([0xB0 | c, 123, 0]); }
+  // The Tonnectome: route the instrument's own sound (and optionally the microphone) into the ear filterbank,
+  // which posts its frames straight to the ear-network worker through `port`
+  async function attachEar(port) {
+    if (!ctx || ear) return !!ear;
+    try {
+      await ctx.audioWorklet.addModule('js/ear-worklet.js' + (window.FH_V ? '?v=' + window.FH_V : ''));
+      const n = new AudioWorkletNode(ctx, 'ear', {numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1], channelCount: 2, channelCountMode: 'explicit'});
+      const own = ctx.createGain(), mic = ctx.createGain(), mute = ctx.createGain(); own.gain.value = 1; mic.gain.value = 0; mute.gain.value = 0;
+      bus.connect(own); own.connect(n); mic.connect(n); n.connect(mute); mute.connect(ctx.destination);
+      n.port.postMessage({port}, [port]);
+      ear = {node: n, own, mic, micSrc: null};
+      return true;
+    } catch (e) { console.warn('ear unavailable', e); return false; }
+  }
+  // source: 'own' | 'mic' | 'both'; level scales what the ear hears
+  async function setEarSource(source, level = 1) {
+    if (!ear) return false;
+    if ((source === 'mic' || source === 'both') && !ear.micSrc) {
+      try {
+        const s = await navigator.mediaDevices.getUserMedia({audio: {echoCancellation: false, noiseSuppression: false, autoGainControl: false}});
+        ear.micSrc = ctx.createMediaStreamSource(s); ear.micSrc.connect(ear.mic);
+      } catch (e) { console.warn('microphone unavailable', e); source = 'own'; }
+    }
+    ear.own.gain.value = source === 'mic' ? 0 : level;
+    ear.mic.gain.value = source === 'own' ? 0 : 3 * level;   // microphones arrive much quieter than the instrument
+    return source;
+  }
   function setVolume(v) { if (master) master.gain.value = v; }
   function setReverb(v) { if (wet) wet.gain.value = v; }
-  return {start, play, initMIDI, setOutput, allNotesOff, setVolume, setReverb, running: () => !!ctx && ctx.state === 'running'};
+  return {start, play, initMIDI, setOutput, allNotesOff, setVolume, setReverb, attachEar, setEarSource, running: () => !!ctx && ctx.state === 'running'};
 })();

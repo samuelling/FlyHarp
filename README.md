@@ -33,6 +33,10 @@ A synthesizer played by the *Drosophila* visual system. A stimulus (or your webc
   - **Photoreceptor adaptation.** Each ommatidium low-pass filters its own luminance (time constant 0.1–3 s) and passes on compressed Weber contrast, x / (1 + |x| / k). With it on, the webcam feeds raw luminance instead of the re-centred image, and a *light level* control (a neutral-density filter) shows the difference: a 40% grating at 1/8 of the trained light drops Mi1's response to 0.11× without adaptation and keeps it at 0.82× with it.
   - **Divisive normalization.** The drive onto the lamina (L1–L3), the T4/T5 input neurons of the medulla (Mi1, Tm3, Mi4, Mi9, Tm1, Tm2, Tm4, Tm9), or both is divided around its grey value by local contrast energy, pooled over a Gaussian of neighbouring columns: response ∝ c / (1 + c / c50). With both stages on, Mi1's size-tuning suppression index rises from 0.21 to 0.60 at 80% contrast but only from 0.25 to 0.37 at 12%, so surround suppression now grows with contrast. In this model Mi1 takes most of its drive straight from R8, so normalizing the lamina alone barely reaches the T4 pathway.
   - **Probe.** A panel below the cascade runs in-silico physiology on a private copy of the network, so the instrument keeps playing. It records the central cell of any type and plots the contrast response, size tuning at 12% and 80% contrast, and the response across mean light levels, with and without the gain control.
+- **The Tonnectome** (named for Everett, who loves to *tonnect* things). The fly's ears listen to its eyes. Everything the instrument plays (and, optionally, the microphone) goes into a model of the fly's antennae and early auditory network, and what it hears is drawn two ways. Either picture can be sent back into the eye, as a stimulus of its own or mixed into any other, so the loop runs sight → sound → hearing → sight.
+  - **Antennae** (`js/ear-worklet.js`): a stereo AudioWorklet. Each antenna is a broad mechanical resonance (peak near 250 Hz) read by 32 band-pass channels from 40 Hz to 1.6 kHz, split into push and pull half-cycles, every 5 ms.
+  - **Johnston's organ and beyond** (`tools/ear_export.py`, `js/ear-net.js`, `js/ear-worker.js`): 4,222 neurons and 1.35 M synapses from FlyWire v783. They are the 1,104 Johnston's organ neurons of both antennae, then neurons getting ≥ 10 synapses from them, then two further steps of neurons getting ≥ 20–25% of their input from the steps before (AMMC, SAD, WED, AVLP and on). Weights are synapse counts × transmitter sign ÷ each cell's total input. Johnston's organ neurons are tuned by subgroup (A high, B low, D broad, C/E sustained deflection, here the slow loudness), each divided by the energy across its antenna. Downstream is a rate network, τ dV/dt = −V + G Σ w r, r = max(0, tanh V). **It is not trained or fit**: only the wiring and signs are measured, and the gain and time constants are set by hand.
+  - **Pictures**: a two-antenna cochleogram, and the network in frontal view with each neuron where it sits. On the eye, the cochleogram scrolls across the eye (time → azimuth, pitch → elevation), so sound becomes motion for T4/T5; the network picture is splatted and blurred onto the ommatidia.
 - **Hover cards** (`js/info.js`) give each visual area and each of the 65 cell types a short summary of its putative role, plus live facts: time constant, its notes, and how often it has plucked.
 
 ## Files
@@ -42,6 +46,10 @@ index.html  css/style.css
 js/engine.js         the network (shared by the worker and Node tests)
 js/gain.js           optional photoreceptor adaptation and divisive normalization
 js/eyegeom.js        eye geometry: idealized lattice or measured eye; facets and lattice-to-world Jacobians
+js/tonnectome.js     The Tonnectome: ear pictures, ear -> eye
+js/ear-worklet.js    antennae: resonance + 32-band push/pull filterbank (AudioWorklet)
+js/ear-net.js, js/ear-worker.js  Johnston's organ + early auditory network from FlyWire
+data/ear.json, data/ear.bin      the auditory network (tools/ear_export.py)
 js/probe.js, js/probe-worker.js  in-silico physiology: contrast, size and light-level tuning
 js/worker.js         simulation + per-type, per-region activity + response calibration
 js/stimuli.js        stimuli and webcam on the hex eye
@@ -56,6 +64,9 @@ tools/fit_motion_decoder.js     fit the T4/T5 → direction read-out into data/f
 tools/eyemap_import.py          map the model's columns onto the measured eye (Zhao et al. 2025) → data/eyemap.json
 data/eyemap.json                viewing direction of each model column on the real eye
 tools/gain_smoke.py             headless check of the gain-control stages and the probe
+tools/ear_export.py             export the auditory network from FlyWire v783
+tools/tonnectome_smoke.py       headless check of the ear loop
+tools/stamp.py                  cache-busting version stamp for every file the page loads
 tools/lens_test.py   screenshot each eye lens for a moving edge
 tools/validate_engine.js  compare the JS engine with a PyTorch reference trace
 tools/smoke_test.py, tools/engine_levels.py, tools/webcam_test.py  headless checks of the page, each voice engine, and the webcam path (Chrome fake camera)

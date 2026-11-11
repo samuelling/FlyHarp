@@ -159,7 +159,7 @@
   $('midiOut').onchange = () => Sound.setOutput($('midiOut').value);
   $('go').onclick = async () => {
     if (!playing) {
-      await Sound.start(); Sound.setVolume(+$('vol').value); Sound.setReverb(+$('rev').value);
+      await Sound.start(); Sound.setVolume(+$('vol').value); Sound.setReverb(+$('rev').value); Tonnectome.onAudioStart();
       if (P.kind === 'webcam') await useCamera();
       playing = true; $('go').textContent = '❚❚ Pause sound'; $('go').classList.add('playing');
       const outs = await Sound.initMIDI();
@@ -286,7 +286,7 @@
       if (fbInfo) $('fbHint').innerHTML = `Medulla → lamina feedback shapes the timbre. In this model ${(100 * fbInfo.fraction).toFixed(0)}% of the synaptic weight onto L1–L5 comes from medulla-resident cells (${fbInfo.sources.slice(0, 4).map(([k]) => k).join(', ')}…). Net inhibitory feedback damps notes (darker, shorter); net excitatory feedback brightens them.`;
       const order = types.map((t, i) => [m.tau[i], t]).sort((a, b) => a[0] - b[0]);
       order.forEach(([, t], r) => tauRank[t] = r / (order.length - 1));
-      layoutCascade(); ready = true;
+      layoutCascade(); ready = true; Tonnectome.init({P});
       eyemapP.then(() => { if (!eyemap) $('eyeGeom').disabled = true; else if ($('eyeGeom').value === 'real') setGeometry('real'); });
       $('eyeGeom').onchange = () => { setGeometry($('eyeGeom').value); $('eyehint').textContent = G.mode === 'real' ? `The measured eye: ${eyemap.ommatidia} ommatidia, ${eyemap.median_dphi_deg.toFixed(1)}° apart on average, finest along the equator. Each facet is drawn where it looks (azimuthal-equidistant projection about the centre column); the network and its wiring are unchanged.` : ''; }; applyPreset('cascade'); sendGain(); setupProbe();
       if (P.kind === 'webcam') useCamera();

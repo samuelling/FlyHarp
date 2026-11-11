@@ -1,7 +1,8 @@
 // Visual stimuli rendered directly onto the fly's 721-column hex eye (luminance 0..1, grey = 0.5).
 const Stimuli = (() => {
   let X, Y, R, nC;
-  const paint = {pts: []};          // pointer strokes: {x, y, t, sign}
+  const paint = {pts: []};
+  let earSampler = null;            // The Tonnectome: (u, v) in [-1, 1] -> what the fly hears, 0..1          // pointer strokes: {x, y, t, sign}
   const cam = {video: null, canvas: null, ctx: null, ok: false, prev: null};
 
   function init(x, y) {
@@ -67,6 +68,7 @@ const Stimuli = (() => {
         paint.pts = keep;
         break;
       }
+      case 'ear': out.fill(0.5); break;   // filled in below, from the ear
       case 'webcam': {
         if (!cam.ok) { out.fill(0.5); break; }
         const w = cam.canvas.width, h = cam.canvas.height;
@@ -93,6 +95,12 @@ const Stimuli = (() => {
     }
     // overall light level (a neutral-density filter in front of the eye); 1 = the grey the network was trained on
     if (p.light !== undefined && p.light !== 1) for (let i = 0; i < nC; i++) out[i] *= p.light;
+    // The Tonnectome: what the fly hears, shown to its eye, alone ('ear') or mixed into any other stimulus
+    const m = p.kind === 'ear' ? 1 : (p.earMix || 0);
+    if (earSampler && m > 0) {
+      const L = p.light ?? 1;
+      for (let i = 0; i < nC; i++) { const e = earSampler(X[i] / R, Y[i] / R); out[i] = (1 - m) * out[i] + m * 0.5 * (1 + c * (2 * e - 1)) * L; }
+    }
     return out;
   }
 
@@ -116,5 +124,5 @@ const Stimuli = (() => {
     try { frame(p, t, out); } finally { X = sx; Y = sy; nC = sn; paint.pts = keep; }
     return out;
   }
-  return {init, frame, frameAt, startCamera, addPaint, radius: () => R, video: () => cam.ok ? cam.video : null};
+  return {init, frame, frameAt, startCamera, addPaint, setEarSampler: f => earSampler = f, radius: () => R, video: () => cam.ok ? cam.video : null};
 })();
