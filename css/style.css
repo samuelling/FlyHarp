@@ -195,3 +195,6 @@ label.small{font-size:12.5px;margin:3px 0}
 .beginGo{font-size:17px;padding:12px 28px}
 .beginQuiet{display:block;margin:12px auto 0;background:none;border:0;color:var(--muted);font:inherit;font-size:13px;cursor:pointer;text-decoration:underline}
 .beginCard .beginNote{color:var(--muted);font-size:12px;margin:14px 0 0}
+.presetRow{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.presetLbl{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);min-width:84px}
+.presets button.on{color:var(--acc);border-color:var(--acc)}

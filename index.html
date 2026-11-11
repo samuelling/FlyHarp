@@ -6,7 +6,7 @@
 <title>FlyHarp · a synthesizer played by the fly visual system</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bowlby+One+SC&family=Courier+Prime:wght@400;700&family=Spline+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=202611110243">
+<link rel="stylesheet" href="css/style.css?v=202611110307">
 </head>
 <body>
 <header>
@@ -99,7 +99,8 @@
         <p class="lead">How the simulation is played: which cells are strings, how they are tuned and voiced, and what you hear.</p></div>
       <div class="mixer">
       <p class="hint">Each area is an instrument family; each cell type a variant of it, with an envelope set by that cell's membrane time constant. Click chips, or the maps in the cascade, to string or unstring a cell type.</p>
-      <div class="presets"><button data-pre="cascade">cascade</button><button data-pre="motion">motion</button><button data-pre="early">retina + lamina</button><button data-pre="all">all</button><button data-pre="none">none</button></div>
+      <div class="presetRow"><span class="presetLbl">instruments</span><div class="presets" id="ensembles"></div></div>
+      <div class="presetRow"><span class="presetLbl">strings</span><div class="presets"><button data-pre="cascade">cascade</button><button data-pre="motion">motion</button><button data-pre="early">retina + lamina</button><button data-pre="all">all</button><button data-pre="none">none</button></div></div>
       <div id="hier"></div></div>
       <div class="ctlGrid">
         <div class="grp "><h3>Strings and time</h3>
@@ -244,14 +245,14 @@
   </div>
 </div>
 <div id="tip" class="tip" role="tooltip"></div>
-<script>window.FH_V = '202611110243';  /* build stamp, set by tools/stamp.py: versions workers, worklet and data too */</script>
-<script src="js/info.js?v=202611110243"></script>
-<script src="js/stimuli.js?v=202611110243"></script>
-<script src="js/eyegeom.js?v=202611110243"></script>
-<script src="js/ear-net.js?v=202611110243"></script>
-<script src="js/tonnectome.js?v=202611110243"></script>
-<script src="js/audio.js?v=202611110243"></script>
-<script src="js/app.js?v=202611110243"></script>
-<script type="module" src="js/lobe.js?v=202611110243"></script>
+<script>window.FH_V = '202611110307';  /* build stamp, set by tools/stamp.py: versions workers, worklet and data too */</script>
+<script src="js/info.js?v=202611110307"></script>
+<script src="js/stimuli.js?v=202611110307"></script>
+<script src="js/eyegeom.js?v=202611110307"></script>
+<script src="js/ear-net.js?v=202611110307"></script>
+<script src="js/tonnectome.js?v=202611110307"></script>
+<script src="js/audio.js?v=202611110307"></script>
+<script src="js/app.js?v=202611110307"></script>
+<script type="module" src="js/lobe.js?v=202611110307"></script>
 </body>
 </html>

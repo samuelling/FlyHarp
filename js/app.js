@@ -4,8 +4,47 @@
   const DT = 0.02;
   const GROUP_NAMES = ['retina', 'lamina', 'medulla', 'medulla → lobula', 'lobula plate (T4/T5)'];
   const GROUP_SUB = ['R1–R8', 'L, Lawf, Am, C2/C3, T1', 'Mi, CT1 (medulla)', 'Tm, TmY, T2, T3', 'T4, T5, CT1 (lobula)'];
-  const ENGINES = {pad: 'bowed pad', modal: 'marimba', pluck: 'harp', fm: 'FM bell', glass: 'glass', click: 'pitched click'};
-  const DEFAULT_ENGINE = ['pad', 'modal', 'pluck', 'fm', 'click'];
+  // instruments: a voice engine (js/voices-worklet.js) and its parameters for one cell type, from that cell's membrane
+  // time-constant rank tr (0 fast .. 1 slow, sets the envelope) and two hashes of its name h1, h2 (set its colour)
+  const VOWEL = {ah: [730, 1090, 2440], oh: [570, 840, 2410], ee: [270, 2290, 3010], oo: [300, 870, 2240], eh: [530, 1840, 2480]};
+  const INSTRUMENTS = {
+    harp: {cat: 'Plucky', label: 'harp', engine: 'pluck', p: (tr, h1) => ({decay: 0.990 + 0.0092 * tr, bright: 0.3 + 0.55 * h1})},
+    synthpluck: {cat: 'Plucky', label: 'synth pluck', engine: 'saw', p: (tr, h1, h2) => ({fdecay: 0.05 + 0.25 * tr, decay: 0.25 + 0.9 * tr, env: 10 + 10 * h1, cut: 1.2 + h2, res: 0.3 + 0.4 * h1, detune: 0.003 + 0.004 * h2})},
+    kalimba: {cat: 'Plucky', label: 'kalimba', engine: 'modal', p: (tr, h1, h2) => ({ratios: [1, 5.95 + 0.4 * h1, 16.4 + 2 * h2], decays: [0.5 + 1.2 * tr, 0.12, 0.04], amps: [1, 0.4, 0.12], attack: 0.001})},
+    koto: {cat: 'Plucky', label: 'koto', engine: 'pluck', p: (tr, h1) => ({decay: 0.993 + 0.0055 * tr, bright: 0.7 + 0.25 * h1})},
+    marimba: {cat: 'Percussive', label: 'marimba', engine: 'modal', p: (tr, h1, h2) => ({ratios: [1, 3.9 + 0.5 * h1, 9.2 + 2.5 * h2], decays: [0.2 + 1.1 * tr, 0.07 + 0.1 * tr, 0.03], amps: [1, 0.35, 0.12], attack: 0.002})},
+    woodblock: {cat: 'Percussive', label: 'woodblock', engine: 'modal', p: (tr, h1, h2) => ({ratios: [1, 2.7 + 0.3 * h1, 5.4 + 0.6 * h2], decays: [0.05 + 0.08 * tr, 0.03, 0.015], amps: [1, 0.5, 0.25], attack: 0.0005})},
+    drum: {cat: 'Percussive', label: 'hand drum', engine: 'membrane', p: (tr, h1, h2) => ({drop: 1.5 + 1.5 * h1, dropT: 0.02 + 0.04 * h2, decay: 0.12 + 0.5 * tr, click: 0.3 + 0.4 * h2})},
+    shaker: {cat: 'Percussive', label: 'shaker', engine: 'shaker', p: (tr, h1, h2) => ({mult: 6 + 10 * h1, q: 3 + 6 * h2, decay: 0.03 + 0.12 * tr})},
+    click: {cat: 'Percussive', label: 'pitched click', engine: 'click', p: (tr, h1, h2) => ({q: 12 + 70 * h1, decay: 0.04 + 0.35 * tr, gain: 0.07 + 0.05 * h2})},
+    fmbell: {cat: 'Bells and glass', label: 'FM bell', engine: 'fm', p: (tr, h1, h2, idx) => ({ratio: [1, 1.4142, 2, 2.7183, 3.5, 0.5, 1.5, 4][idx % 8], index: 1.2 + 3 * h1, idecay: 0.04 + 0.4 * tr, decay: 0.25 + 1.6 * tr})},
+    glass: {cat: 'Bells and glass', label: 'glass', engine: 'glass', p: (tr, h1, h2) => ({ratios: [1, 1.0035, 2.32 + 0.12 * h1, 4.25 + 0.25 * h2], decays: [1.2 + 3 * tr, 1.2 + 3 * tr, 0.7, 0.35], amps: [0.6, 0.45, 0.22, 0.1], attack: 0.004})},
+    tubular: {cat: 'Bells and glass', label: 'tubular bell', engine: 'additive', p: tr => ({ratios: [1, 2.76, 5.40, 8.93, 13.34], amps: [1, 0.6, 0.4, 0.25, 0.15], decays: [2 + 4 * tr, 1.5 + 3 * tr, 1 + 1.5 * tr, 0.6, 0.3], attack: 0.002, hold: 50, shimmer: 0.0008})},
+    gamelan: {cat: 'Bells and glass', label: 'gamelan', engine: 'additive', p: (tr, h1, h2) => ({ratios: [1, 1.006 + 0.004 * h1, 2.02, 2.97 + 0.1 * h2, 4.2], amps: [1, 0.9, 0.5, 0.35, 0.2], decays: [1.5 + 3 * tr, 1.5 + 3 * tr, 0.8, 0.5, 0.3], attack: 0.002, hold: 50, shimmer: 0.001})},
+    bowedpad: {cat: 'Pads and ambient', label: 'bowed pad', engine: 'pad', p: (tr, h1, h2) => ({detune: 0.002 + 0.006 * h1, cutoff: 1.5 + 4 * h2, attack: 0.02 + 0.35 * tr, release: 0.25 + 1.4 * tr})},
+    warmpad: {cat: 'Pads and ambient', label: 'warm pad', engine: 'pad', p: (tr, h1, h2) => ({detune: 0.003 + 0.004 * h1, cutoff: 0.9 + 1.2 * h2, attack: 0.25 + 0.6 * tr, release: 1 + 2 * tr})},
+    shimmer: {cat: 'Pads and ambient', label: 'shimmer cloud', engine: 'grains', p: (tr, h1) => ({ratios: [1, 2, 3, 4, 6, 8], amps: [1, 0.55, 0.35, 0.25 * h1 + 0.1, 0.15, 0.1], attack: 0.3 + 0.6 * tr, release: 1.5 + 2.5 * tr, shimmer: 0.004})},
+    dronechoir: {cat: 'Pads and ambient', label: 'drone choir', engine: 'vowel', p: tr => ({formants: VOWEL.ah, attack: 0.3 + 0.5 * tr, release: 1.2 + 1.5 * tr, breath: 0.25})},
+    choir: {cat: 'Organic', label: 'choir', engine: 'vowel', p: (tr, h1) => ({formants: Object.values(VOWEL)[Math.floor(h1 * 5)], attack: 0.06 + 0.2 * tr, release: 0.4 + 0.8 * tr, breath: 0.12})},
+    flute: {cat: 'Organic', label: 'breathy flute', engine: 'breath', p: (tr, h1, h2) => ({q: 30 + 40 * h1, noise: 2 + 1.5 * h2, tone: 0.3 + 0.3 * h1, attack: 0.03 + 0.08 * tr, release: 0.2 + 0.5 * tr})},
+    panpipe: {cat: 'Organic', label: 'pan pipe', engine: 'breath', p: (tr, h1) => ({q: 15 + 15 * h1, noise: 3.5, tone: 0.15, attack: 0.02 + 0.05 * tr, release: 0.15 + 0.3 * tr})},
+    organ: {cat: 'Additive textures', label: 'drawbar organ', engine: 'additive', p: (tr, h1, h2) => ({ratios: [1, 2, 3, 4, 6, 8], amps: [1, 0.5 + 0.4 * h1, 0.5, 0.2 + 0.4 * h2, 0.25, 0.2], attack: 0.01, hold: 1, release: 0.15 + 0.3 * tr, shimmer: 0.0006})},
+    hollow: {cat: 'Additive textures', label: 'hollow reed', engine: 'additive', p: tr => ({ratios: [1, 3, 5, 7, 9], amps: [1, 0.45, 0.25, 0.15, 0.08], attack: 0.02 + 0.06 * tr, hold: 1, release: 0.2 + 0.6 * tr, shimmer: 0.001})},
+    spectral: {cat: 'Additive textures', label: 'spectral partials', engine: 'additive', p: (tr, h1, h2) => ({ratios: [1, 1.5 + 0.5 * h1, 2.2 + 0.8 * h2, 3.7 + h1, 5.1 + 1.5 * h2], amps: [1, 0.6, 0.45, 0.3, 0.2], decays: [0.6 + 2 * tr, 0.5 + 1.5 * tr, 0.4 + tr, 0.3, 0.2], attack: 0.003, hold: 50, shimmer: 0.002})},
+    glassyadd: {cat: 'Additive textures', label: 'octave glass', engine: 'additive', p: tr => ({ratios: [1, 2, 4, 8, 16], amps: [1, 0.5, 0.35, 0.2, 0.1], attack: 0.05, hold: 1, release: 0.8 + 1.2 * tr, shimmer: 0.006})},
+  };
+  const ENSEMBLES = {
+    classic: ['bowedpad', 'marimba', 'harp', 'fmbell', 'click'],
+    additive: ['organ', 'hollow', 'glassyadd', 'spectral', 'tubular'],
+    organic: ['choir', 'flute', 'kalimba', 'panpipe', 'woodblock'],
+    plucky: ['synthpluck', 'harp', 'koto', 'kalimba', 'click'],
+    ambient: ['warmpad', 'shimmer', 'dronechoir', 'glass', 'bowedpad'],
+    percussive: ['drum', 'marimba', 'woodblock', 'shaker', 'click'],
+    bells: ['tubular', 'glass', 'fmbell', 'gamelan', 'kalimba'],
+  };
+  const DEFAULT_ENGINE = ENSEMBLES.classic;
+  const instOptions = sel => [...new Set(Object.values(INSTRUMENTS).map(i => i.cat))].map(cat => `<optgroup label="${cat}">${
+    Object.entries(INSTRUMENTS).filter(([, i]) => i.cat === cat).map(([k, i]) => `<option value="${k}" ${k === sel ? 'selected' : ''}>${i.label}</option>`).join('')}</optgroup>`).join('');
   const area = [0, 1, 2, 3, 4].map(g => ({engine: DEFAULT_ENGINE[g], level: 0.8, mute: false, solo: false, pol: 'both'}));
   let selected = new Set(), tauRank = {};
   const fbR = new Float32Array(7);   // smoothed feedback per eye region, in units of its calibrated range (signed)
@@ -79,6 +118,13 @@
   $('root').innerHTML = NOTE_NAMES.map((n, i) => `<option value="${i}" ${i === 2 ? 'selected' : ''}>${n}</option>`).join('');
   ['scale', 'root'].forEach(k => $(k).onchange = buildStrings);
   document.querySelectorAll('.presets button').forEach(b => b.onclick = () => applyPreset(b.dataset.pre));
+  // ensembles: one instrument per area, all at once
+  $('ensembles').innerHTML = Object.keys(ENSEMBLES).map(k => `<button data-ens="${k}" title="${ENSEMBLES[k].map(i => INSTRUMENTS[i].label).join(' · ')}">${{classic: 'classic', additive: 'additive textures', organic: 'organic', plucky: 'plucky', ambient: 'pads and ambient', percussive: 'percussive', bells: 'bells and glass'}[k]}</button>`).join('');
+  $('ensembles').querySelectorAll('button').forEach(b => b.onclick = () => {
+    ENSEMBLES[b.dataset.ens].forEach((inst, g) => area[g].engine = inst);
+    $('ensembles').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+    buildStrings(); renderHier();
+  });
   function applyPreset(pre) {
     selected = new Set(pre === 'all' ? types : pre === 'none' ? [] : PRESETS[pre].filter(t => types.includes(t)));
     buildStrings(); renderHier();
@@ -94,7 +140,7 @@
         <div class="head"><span class="dot" style="background:${GROUP_COL[g]}"></span><span class="nm">${GROUP_NAMES[g]}</span>
           <span class="pol">${[['dep', '+', 'depolarisation only'], ['both', '±', 'depolarisation and hyperpolarisation'], ['hyp', '−', 'hyperpolarisation only']].map(([k, l, ttl]) => `<button class="sm pl ${a.pol === k ? 'on' : ''}" data-pol="${k}" title="${ttl}">${l}</button>`).join('')}</span>
           <button class="sm solo ${a.solo ? 'on' : ''}" title="solo">S</button><button class="sm mute ${a.mute ? 'on' : ''}" title="mute">M</button></div>
-        <div class="row2"><select class="eng">${Object.entries(ENGINES).map(([k, n]) => `<option value="${k}" ${k === a.engine ? 'selected' : ''}>${n}</option>`).join('')}</select>
+        <div class="row2"><select class="eng">${instOptions(a.engine)}</select>
           <input type="range" class="lvl" min="0" max="1" step="0.05" value="${a.level}" title="level"></div>
         <div class="chips">${ts.map(t => `<button class="chip ${selected.has(t) ? 'on' : ''}" data-t="${t}" style="${selected.has(t) ? `background:${GROUP_COL[g]};border-color:${GROUP_COL[g]}` : ''}" title="${t} · τ = ${(1000 * tauOf(t)).toFixed(0)} ms">${t}</button>`).join('')}</div></div>`;
     }).join('');
@@ -132,7 +178,7 @@
     const A = FlyInfo.areas[g], a = area[g];
     const n = types.filter(t => groupOf(t) === g), on = n.filter(t => selected.has(t)).length;
     return `<h4 style="color:${GROUP_COL[g]}">${A.name}</h4><div class="k">${A.sub}</div>${A.text}
-      <div class="meta">${n.length} cell types · ${on} strung · sounds as ${ENGINES[a.engine]}${a.mute ? ' · muted' : ''}${a.solo ? ' · solo' : ''}</div>`;
+      <div class="meta">${n.length} cell types · ${on} strung · sounds as ${INSTRUMENTS[a.engine].label}${a.mute ? ' · muted' : ''}${a.solo ? ' · solo' : ''}</div>`;
   }
   function cellCard(t) {
     const g = groupOf(t), st = strings.filter(x => x.name === t);
@@ -145,15 +191,8 @@
   // sets the envelope (fast cells percussive, slow cells sustained); a hash of its name varies the colour
   function hash(str, k) { let h = 2166136261 ^ k; for (const ch of str) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return ((h >>> 0) % 1000) / 1000; }
   function timbre(name, g, idx) {
-    const eng = area[g].engine, tr = tauRank[name] ?? 0.5, h1 = hash(name, 1), h2 = hash(name, 2);
-    switch (eng) {
-      case 'pluck': return {engine: eng, p: {decay: 0.990 + 0.0092 * tr, bright: 0.3 + 0.55 * h1}};
-      case 'modal': return {engine: eng, p: {ratios: [1, 3.9 + 0.5 * h1, 9.2 + 2.5 * h2], decays: [0.2 + 1.1 * tr, 0.07 + 0.1 * tr, 0.03], amps: [1, 0.35, 0.12], attack: 0.002}};
-      case 'glass': return {engine: eng, p: {ratios: [1, 1.0035, 2.32 + 0.12 * h1, 4.25 + 0.25 * h2], decays: [1.2 + 3 * tr, 1.2 + 3 * tr, 0.7, 0.35], amps: [0.6, 0.45, 0.22, 0.1], attack: 0.004}};
-      case 'fm': return {engine: eng, p: {ratio: [1, 1.4142, 2, 2.7183, 3.5, 0.5, 1.5, 4][idx % 8], index: 1.2 + 3 * h1, idecay: 0.04 + 0.4 * tr, decay: 0.25 + 1.6 * tr}};
-      case 'pad': return {engine: eng, p: {detune: 0.002 + 0.006 * h1, cutoff: 1.5 + 4 * h2, attack: 0.02 + 0.35 * tr, release: 0.25 + 1.4 * tr}};
-      case 'click': return {engine: eng, p: {q: 12 + 70 * h1, decay: 0.04 + 0.35 * tr, gain: 0.07 + 0.05 * h2}};
-    }
+    const I = INSTRUMENTS[area[g].engine] || INSTRUMENTS.harp, tr = tauRank[name] ?? 0.5, h1 = hash(name, 1), h2 = hash(name, 2);
+    return {engine: I.engine, p: I.p(tr, h1, h2, idx)};
   }
   $('spatial').onchange = buildStrings;
   $('reset').onclick = () => worker.postMessage({cmd: 'reset'});
@@ -193,7 +232,7 @@
         if ('index' in q) q.index *= 0.5;
         if ('cutoff' in q) q.cutoff *= 0.6;
         // let the instrument ring through the swell
-        if (tb.engine === 'click' || tb.engine === 'fm') q.decay += q.rev;
+        if (['click', 'fm', 'membrane', 'shaker', 'saw'].includes(tb.engine)) q.decay += q.rev;
         if (tb.engine === 'fm') q.idecay += q.rev;
         if (tb.engine === 'pluck') q.decay = Math.max(q.decay, 0.998);
         if (q.decays) q.decays = q.decays.map(d => d + q.rev);
@@ -242,6 +281,13 @@
       case 'fm': p.index = Math.max(0.05, p.index * (1 - 0.8 * damp) * (1 + 1.5 * lift)); p.decay *= (1 - 0.6 * damp) * (1 + 0.4 * lift); break;
       case 'pad': p.cutoff = Math.max(0.6, p.cutoff * (1 - 0.6 * damp) * (1 + 1.2 * lift)); p.detune *= 1 + 3 * lift; p.release *= 1 - 0.5 * damp; break;
       case 'click': p.q = Math.max(4, p.q * (1 - 0.7 * damp) * (1 + 1.0 * lift)); p.decay *= (1 - 0.6 * damp) * (1 + 0.5 * lift); break;
+      case 'additive': case 'grains':
+        if (p.decays) p.decays = p.decays.map(d => d * (1 - 0.6 * damp) * (1 + 0.4 * lift));
+        p.amps = p.amps.map((a, i) => i === 0 ? a : a * (1 - 0.7 * damp) * (1 + 1.0 * lift)); p.shimmer = (p.shimmer ?? 0.002) * (1 + 3 * lift); break;
+      case 'vowel': p.breath = (p.breath ?? 0.15) * (1 - 0.6 * damp) * (1 + 1.5 * lift); p.release = (p.release ?? 0.5) * (1 - 0.5 * damp); break;
+      case 'breath': p.noise = (p.noise ?? 2.5) * (1 - 0.5 * damp) * (1 + 0.8 * lift); p.release = (p.release ?? 0.25) * (1 - 0.5 * damp); break;
+      case 'membrane': case 'shaker': p.decay *= (1 - 0.6 * damp) * (1 + 0.5 * lift); break;
+      case 'saw': p.cut = (p.cut ?? 1.5) * (1 - 0.5 * damp) * (1 + 1.0 * lift); p.decay *= (1 - 0.5 * damp) * (1 + 0.3 * lift); break;
     }
   }
 
