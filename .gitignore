@@ -1,2 +1,4 @@
 tools/reference_trace.json
 __pycache__/
+g_*.png
+tn_*.png
