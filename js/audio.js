@@ -90,5 +90,7 @@ const Sound = (() => {
   }
   function setVolume(v) { if (master) master.gain.value = v; }
   function setReverb(v) { if (wet) wet.gain.value = v; }
-  return {start, play, initMIDI, setOutput, allNotesOff, setVolume, setReverb, attachEar, setEarSource, running: () => !!ctx && ctx.state === 'running'};
+  // for other sound sources that should be heard and fed to the ears like the instrument (js/courtship/courtship.js)
+  const context = () => ctx, input = () => bus;
+  return {start, play, initMIDI, setOutput, allNotesOff, setVolume, setReverb, attachEar, setEarSource, context, bus: input, running: () => !!ctx && ctx.state === 'running'};
 })();

@@ -302,3 +302,16 @@ label.small{font-size:12.5px;margin:3px 0}
 .whatDlg dt{color:var(--ink);margin-top:8px}.whatDlg dd{margin:2px 0 0 0}
 .whatDlg b{color:var(--ink)}
 .whatClose{position:sticky;top:0;float:right;margin:-8px -10px 0 0;width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:#1b1d22;color:var(--ink);font-size:20px;line-height:1;cursor:pointer}
+
+/* Courtship mode (js/courtship/courtship.js) */
+.courtBtn{margin-left:6px;border-color:#FF68BA;color:#FF68BA;box-shadow:2px 2px 0 #7DB0FF}.courtBtn:hover,.courtBtn.on{background:#FF68BA;color:#141517}
+.courtPanel{position:fixed;right:16px;top:86px;width:356px;max-width:calc(100vw - 32px);z-index:40;background:#141517f2;border:1.5px solid #FF68BA;border-radius:14px;padding:12px 14px;color:#ECEBE5;font:13px/1.35 "Spline Sans","Helvetica Neue",Arial,sans-serif;box-shadow:4px 4px 0 #7DB0FF55}
+.courtPanel.hidden{display:none}
+.courtPanel .cpHead{display:flex;align-items:center;gap:8px;margin-bottom:8px}.courtPanel .cpX{margin-left:auto;background:none;border:0;color:#ECEBE5;font-size:20px;cursor:pointer}
+.courtPanel .hint{opacity:.7;font-size:12px}.courtPanel .small{font-size:11px}
+.cpPads{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+.cpPad{font:700 18px/1.1 inherit;padding:14px 8px;border-radius:12px;border:1.5px solid #FF68BA;background:#FF68BA22;color:#ECEBE5;cursor:pointer;touch-action:manipulation;user-select:none}
+.cpPad small{display:block;font-weight:400;font-size:11px;opacity:.7;margin-top:4px}.cpPad.hum{border-color:#7DB0FF;background:#7DB0FF22}.cpPad.down{background:#FF68BA;color:#141517}.cpPad.hum.down{background:#7DB0FF}
+#cpTrace{width:100%;height:44px;background:#0b0c0e;border-radius:8px;margin-bottom:6px}
+.cpRow{display:flex;align-items:center;gap:8px;margin:4px 0}.cpRow>span:first-child{width:118px;opacity:.85}
+.cpBar{display:inline-block;flex:1;height:8px;background:#ffffff1a;border-radius:4px;overflow:hidden}.cpBar i{display:block;height:100%;width:0;background:#FFD23F;border-radius:4px}.cpBar i.ear{background:#7DB0FF}.cpBar i.r{background:#FF68BA}

@@ -52,6 +52,23 @@ A synthesizer played by the *Drosophila* visual system. A stimulus (or your webc
 - **Synthesthesia** (third tab). The whole loop on one screen. The eye is shown only what its ears hear (a slider mixes the stimulus back in), and a live schematic of the fly's head runs from front to back. Light enters the compound eyes and passes through lamina, medulla, lobula and lobula plate; the optic lobe plays the instrument; sound reaches the antennae; the auditory areas pass it inward; the lens population paints a picture; and the picture beams back into the eyes. Every area glows with its own activity relative to its recent peak. The full-size eye and picture sit underneath.
 - **Hover cards** (`js/info.js`) give each visual area and each of the 65 cell types a short summary of its putative role, plus live facts: time constant, its notes, and how often it has plucked.
 
+## Courtship mode (branch `courtship`)
+
+**♥ Courtship** in the header opens a panel where you sing a male fly's courtship song by hand and the Tonnectome listens:
+- Tap the pulse pad (or J) at a steady tempo. Each tap sets the wing's pulse generator, which sings ten times faster than you tap: tapping every 350 ms gives 35 ms between pulses, the *D. melanogaster* inter-pulse interval.
+- Hold the hum pad (or K) for sine song.
+- The song is true pitch (270 Hz pulses, 155 Hz hum). It plays into the instrument's bus, so it is heard and fed to the antennae exactly like the instrument's own sound.
+
+The panel shows:
+- your song's IPI, regularity and sine share;
+- how much it sounds like a conspecific (a schematic preference centred on 35 ms);
+- the mean rate of the 32 AVLP/PVLP/WED neurons in this network that respond most to pulse song, and of the four vpoEN cells;
+- a schematic receptivity that rises with song-pathway drive × song quality.
+
+The song module (`js/courtship/song.js`, `songadapter.js`) is shared with [FrogFood](https://github.com/samuelling/Frog-food), where the same song courts a female whose ears are this network, and with Opulation. Changes outside `js/courtship/`:
+- `Sound` exposes `context()` and `bus()`;
+- a header button and a block of CSS.
+
 ## Files
 
 ```
